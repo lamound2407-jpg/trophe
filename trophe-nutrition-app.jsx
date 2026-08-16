@@ -1178,7 +1178,7 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
 
   return (
     <div>
-      <div className="px-5 pt-5 pb-0"><TropheLockup iconSize={52} wordmarkSize={30} align="left" /></div>
+      <div className="px-5 pt-5 pb-0"><TropheLockup iconSize={52} wordmarkSize={22} align="left" /></div>
       <div className="px-5 pt-3 pb-3">
         <div className="text-[13px] font-semibold" style={{ color: "var(--ink-faint)" }}>
           {isToday ? `${greetingWord()}, ${PEOPLE[person].name}` : `Viewing a past or future day, ${PEOPLE[person].name}`}
