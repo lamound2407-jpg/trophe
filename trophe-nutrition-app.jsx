@@ -6,7 +6,7 @@ import {
   Minus, Clock, MapPin, Sparkles, Moon, Sun, TrendingUp, AlertCircle,
   Edit3, ShoppingBag, Package, Snowflake, Refrigerator, ChefHat,
   Zap, Battery, BatteryLow, Coffee, Salad, Beef, Fish, Egg, Wheat,
-  Info, ArrowLeft, Star, Utensils, Calendar, Settings2, BookOpen
+  Info, ArrowLeft, Star, Utensils, Calendar, Settings2, BookOpen, Link as LinkIcon
 } from "lucide-react";
 
 /* =========================================================================
@@ -481,6 +481,13 @@ const getPref = (prefs, foodId, personId) => {
 };
 
 /* ------------------------------- PROFILES --------------------------------- */
+const DEFAULT_ROUTINE = {
+  planDay: "sun", planTime: "4:00 PM",
+  shopDay: "sun", shopTime: "5:30 PM",
+  cookStyle: "prep", prepDay: "sun", prepTime: "6:30 PM",
+  dailyCookTime: "6:00 PM",
+};
+
 const DEFAULT_PROFILES = {
   tyler: {
     calorieTarget: 1800, proteinTarget: 150, carbTarget: 190, fatTarget: 60, fiberTarget: 25, waterTarget: 100,
@@ -1096,7 +1103,7 @@ function DateNavigator({ viewDate, setViewDate }) {
 }
 
 function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, mealsMap, prefs, profile, overrides, locks, foodLog, toggleEaten,
-  removeLogEntry, water, addWater, setWaterTotal, timeOverrides, setTimeOverride, workoutOverrides, setWorkoutOverride, onOpenModal, onNavigate, onOpenMeal }) {
+  removeLogEntry, water, addWater, setWaterTotal, timeOverrides, setTimeOverride, workoutOverrides, setWorkoutOverride, routine, onOpenModal, onNavigate, onOpenMeal }) {
   const weekday = weekdayKeyOf(viewDate);
   const day = WEEK_DAYS.find((d) => d.key === weekday) || WEEK_DAYS[0];
   const isToday = viewDate === todayISO();
@@ -1149,6 +1156,22 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
         </h1>
         <DateNavigator viewDate={viewDate} setViewDate={setViewDate} />
         <div className="mt-3"><PersonToggle value={person} onChange={setPerson} /></div>
+        {isToday && routine && (() => {
+          const tags = [];
+          if (weekday === routine.planDay) tags.push({ label: "Plan Day", color: "var(--blue)", icon: Calendar, onClick: () => onNavigate("week") });
+          if (weekday === routine.shopDay) tags.push({ label: "Shopping Day", color: "var(--mustard)", icon: ShoppingCart, onClick: () => onNavigate("groceries") });
+          if (routine.cookStyle === "prep" && weekday === routine.prepDay) tags.push({ label: "Meal Prep Day", color: "var(--brick)", icon: ChefHat, onClick: () => onNavigate("meals") });
+          if (!tags.length) return null;
+          return (
+            <div className="scrollx flex gap-1.5 mt-3">
+              {tags.map((t) => (
+                <button key={t.label} onClick={t.onClick} className="tap chip inline-flex items-center gap-1" style={{ whiteSpace: "nowrap", background: t.color + "22", borderColor: "transparent", color: t.color, fontWeight: 700 }}>
+                  <t.icon size={11} /> Today's {t.label}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Main nutrition card — Apple-Activity-style concentric rings */}
@@ -1547,13 +1570,20 @@ function explainMeal(meal, foodsById, prefs) {
   return "Selected to fit today's calorie, protein, and carbohydrate targets using foods already on hand where possible.";
 }
 
-function MealDetailSheet({ meal, slot, day, foodsById, prefs, favorites, toggleFavorite, onClose }) {
+function MealDetailSheet({ meal, slot, day, foodsById, prefs, favorites, toggleFavorite, onClose, onDeleteRecipe }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   if (!meal) return null;
   const n = computeItemsNutrition(meal.items, foodsById);
   const isFav = favorites?.includes(meal.id);
   return (
     <Sheet title={meal.name} onClose={onClose}>
       {slot && <div className="mb-3"><CategoryTag category={slot.category} /></div>}
+      {meal.link && (
+        <a href={meal.link} target="_blank" rel="noopener noreferrer" className="tap flex items-center gap-2 p-3 rounded-2xl mb-3" style={{ background: "var(--blue-soft)", textDecoration: "none" }}>
+          <LinkIcon size={14} color="var(--blue)" />
+          <span className="text-[12.5px] font-semibold" style={{ color: "var(--blue)", wordBreak: "break-all" }}>{meal.link}</span>
+        </a>
+      )}
       <div className="font-mono text-[13px] mb-4" style={{ color: "var(--ink-soft)" }}>
         <b className="text-[15px]" style={{ color: "var(--ink)" }}>{round(n.cal)} cal</b>
         &nbsp;·&nbsp;{round(n.p)}g protein · {round(n.c)}g carbs · {round(n.f)}g fat · {round(n.fiber)}g fiber
@@ -1581,7 +1611,7 @@ function MealDetailSheet({ meal, slot, day, foodsById, prefs, favorites, toggleF
           return (
             <div key={i} className="flex items-center justify-between py-1.5" style={{ borderBottom: i < meal.items.length - 1 ? "0.5px solid rgba(60,60,67,.14)" : "none" }}>
               <span className="text-[13px]">{f.name}</span>
-              <span className="font-mono text-[11.5px]" style={{ color: "var(--ink-faint)" }}>{it.qty === 1 ? f.servingLabel : `${it.qty}× ${f.servingLabel}`}</span>
+              <span className="font-mono text-[11.5px]" style={{ color: "var(--ink-faint)" }}>{it.label || (it.qty === 1 ? f.servingLabel : `${it.qty}× ${f.servingLabel}`)}</span>
             </div>
           );
         })}
@@ -1621,6 +1651,24 @@ function MealDetailSheet({ meal, slot, day, foodsById, prefs, favorites, toggleF
         <Heart size={15} fill={isFav ? "var(--brick)" : "none"} color={isFav ? "var(--brick)" : "var(--ink)"} />
         {isFav ? "Favorited" : "Favorite This Meal"}
       </button>
+
+      {meal.notes && (
+        <div className="p-3 rounded-2xl mt-3" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+          <div className="text-[11px] font-bold mb-1" style={{ color: "var(--ink-faint)" }}>NOTES</div>
+          <div className="text-[12.5px]" style={{ color: "var(--ink-soft)" }}>{meal.notes}</div>
+        </div>
+      )}
+
+      {meal.custom && onDeleteRecipe && (
+        confirmDelete ? (
+          <div className="flex gap-2 mt-3">
+            <button onClick={() => setConfirmDelete(false)} className="tap btn-ghost" style={{ flex: 1, padding: "11px 0" }}>Cancel</button>
+            <button onClick={() => { onDeleteRecipe(meal.id); onClose(); }} className="tap" style={{ flex: 1, padding: "11px 0", borderRadius: 980, background: "var(--brick)", color: "#fff", fontWeight: 600 }}>Delete</button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmDelete(true)} className="tap text-[12.5px] font-semibold mt-4" style={{ color: "var(--brick)" }}>Delete This Recipe</button>
+        )
+      )}
     </Sheet>
   );
 }
@@ -1695,14 +1743,14 @@ function AddToWeekSheet({ meal, onClose, onConfirm }) {
   );
 }
 
-function FoodCard({ food, prefs, updatePref, updateFoodQty, updateFoodPrice, addStorePrice, removeStorePrice, setPreferredStore, renameStore, deleteFood, toggleStaple }) {
+function FoodCard({ food, meals, prefs, updatePref, updateFoodQty, updateFoodPrice, addStorePrice, removeStorePrice, setPreferredStore, renameStore, deleteFood, toggleStaple }) {
   const [section, setSection] = useState(null); // null | 'prefs' | 'prices'
   const [newStore, setNewStore] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const locIcon = { fridge: Refrigerator, freezer: Snowflake, pantry: Package }[food.location] || Package;
   const LocIcon = locIcon;
-  const usedInMeals = useMemo(() => MEALS.filter((m) => m.items.some((it) => it.food === food.id)).map((m) => m.name), [food.id]);
+  const usedInMeals = useMemo(() => (meals || MEALS).filter((m) => m.items.some((it) => it.food === food.id)).map((m) => m.name), [food.id, meals]);
   return (
     <div className="card p-4 mb-3">
       <div className="flex items-start justify-between">
@@ -1930,6 +1978,115 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
   );
 }
 
+/* ============================== CREATE / EDIT RECIPE ================================ */
+
+const RECIPE_CATEGORIES = ["breakfast","lunch","dinner","snack","preworkout","postworkout"];
+
+function IngredientPicker({ foods, ingredients, setIngredients }) {
+  const [q, setQ] = useState("");
+  const matches = q.trim() ? foods.filter((f) => f.name.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : [];
+
+  const addIngredient = (food) => {
+    setIngredients((s) => [...s, { foodId: food.id, qty: 1, label: food.servingLabel }]);
+    setQ("");
+  };
+  const updateIngredient = (i, patch) => setIngredients((s) => s.map((row, idx) => idx === i ? { ...row, ...patch } : row));
+  const removeIngredient = (i) => setIngredients((s) => s.filter((_, idx) => idx !== i));
+
+  return (
+    <div>
+      {ingredients.map((row, i) => {
+        const food = foods.find((f) => f.id === row.foodId);
+        if (!food) return null;
+        return (
+          <div key={i} className="p-3 rounded-2xl mb-2" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-[13.5px]">{food.name}</span>
+              <button onClick={() => removeIngredient(i)} className="tap" style={{ padding: 3 }}><X size={13} color="var(--ink-faint)" /></button>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[11.5px] font-semibold" style={{ color: "var(--ink-faint)" }}>Multiplier:</span>
+              <button onClick={() => updateIngredient(i, { qty: Math.max(0.25, row.qty - 0.25) })} className="tap" style={{ width: 22, height: 22, borderRadius: 999, border: "1px solid var(--line)" }}>−</button>
+              <span className="font-mono text-[13px] w-8 text-center">{row.qty}</span>
+              <button onClick={() => updateIngredient(i, { qty: row.qty + 0.25 })} className="tap" style={{ width: 22, height: 22, borderRadius: 999, border: "1px solid var(--line)" }}>+</button>
+              <span className="text-[11px]" style={{ color: "var(--ink-faint)" }}>× {food.servingLabel}</span>
+            </div>
+            <Field label="Exact measurement to display (optional)">
+              <input value={row.label} onChange={(e) => updateIngredient(i, { label: e.target.value })} className="input" style={{ fontSize: 12.5, padding: "7px 10px" }} placeholder='e.g. "1½ cups, packed"' />
+            </Field>
+          </div>
+        );
+      })}
+      <div className="flex items-center gap-2 px-3 rounded-2xl mb-1" style={{ background: "var(--paper-3)" }}>
+        <Search size={13} style={{ color: "var(--ink-faint)" }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search foods to add as an ingredient…" className="input" style={{ border: "none", padding: "8px 0", background: "transparent", fontSize: 13 }} />
+      </div>
+      {matches.map((f) => (
+        <button key={f.id} onClick={() => addIngredient(f)} className="tap w-full text-left p-2.5 rounded-xl mb-1" style={{ background: "var(--paper)" }}>
+          <span className="text-[13px] font-semibold">{f.name}</span> <span className="text-[11px]" style={{ color: "var(--ink-faint)" }}>{f.servingLabel}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CreateRecipeModal({ foods, onClose, onSave }) {
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("dinner");
+  const [prep, setPrep] = useState(20);
+  const [link, setLink] = useState("");
+  const [notes, setNotes] = useState("");
+  const [ingredients, setIngredients] = useState([]);
+  const [stepsText, setStepsText] = useState("");
+
+  const canSave = name.trim() && ingredients.length > 0;
+
+  return (
+    <Sheet title="Create Recipe" onClose={onClose} footer={
+      <button disabled={!canSave} onClick={() => {
+        const steps = stepsText.split("\n").map((s) => s.trim()).filter(Boolean);
+        onSave({
+          name: name.trim(), category, prep: Number(prep) || 15, people: "both",
+          link: link.trim() || null, notes: notes.trim() || null,
+          items: ingredients.map((i) => ({ food: i.foodId, qty: i.qty, label: i.label })),
+          steps: steps.length ? steps : ["No steps added yet — edit this recipe to add them."],
+        });
+      }} className="tap btn-primary w-full" style={{ padding: "13px 0", opacity: canSave ? 1 : .4 }}>
+        Save Recipe
+      </button>
+    }>
+      <Field label="Recipe name"><input value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="e.g. Beth's Chicken Chili" /></Field>
+      <div className="mt-3">
+        <span className="text-[11.5px] font-bold block mb-1" style={{ color: "var(--ink-faint)" }}>Category</span>
+        <div className="scrollx flex gap-1.5 pb-1">
+          {RECIPE_CATEGORIES.map((c) => (
+            <button key={c} onClick={() => setCategory(c)} className="tap chip" style={{ whiteSpace: "nowrap", ...(category === c ? { background: CATEGORY_META[c].color, color: "#fff", borderColor: CATEGORY_META[c].color } : {}) }}>{CATEGORY_META[c].label}</button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 mt-3">
+        <Field label="Prep time (min)"><input type="number" value={prep} onChange={(e) => setPrep(e.target.value)} className="input" /></Field>
+        <Field label="Recipe link (optional)"><input value={link} onChange={(e) => setLink(e.target.value)} className="input" placeholder="https://…" /></Field>
+      </div>
+
+      <div className="mt-4">
+        <span className="text-[11.5px] font-bold block mb-1.5" style={{ color: "var(--ink-faint)" }}>INGREDIENTS</span>
+        <IngredientPicker foods={foods} ingredients={ingredients} setIngredients={setIngredients} />
+      </div>
+
+      <div className="mt-4">
+        <span className="text-[11.5px] font-bold block mb-1.5" style={{ color: "var(--ink-faint)" }}>STEPS (one per line)</span>
+        <textarea value={stepsText} onChange={(e) => setStepsText(e.target.value)} className="input" rows={5}
+          placeholder={"Season the chicken and sear until browned.\nAdd broth and simmer 20 minutes.\nStir in beans and serve."} />
+      </div>
+
+      <div className="mt-3">
+        <Field label="Notes (optional)"><input value={notes} onChange={(e) => setNotes(e.target.value)} className="input" placeholder="Any other details worth keeping" /></Field>
+      </div>
+    </Sheet>
+  );
+}
+
 function AddFoodModal({ onClose, onSave }) {
   const [f, setF] = useState({ name:"", brand:"", category:"Protein", servingLabel:"", cal:"", p:"", c:"", fat:"", fiber:"", gf:false, ai:false, price:"", store:"", location:"pantry", qty:0, pkgServings:1 });
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
@@ -1987,10 +2144,11 @@ function Field({ label, children }) {
 /* ------------------------- Meals screen (Recipes + Foods) ------------------------- */
 
 function MealsScreen({ meals, foods, foodsById, prefs, updatePref, updateFoodQty, updateFoodPrice, addStorePrice, removeStorePrice, setPreferredStore, renameStore, deleteFood, toggleStaple,
-  favorites, toggleFavorite, onView, onAddMealToWeek, onAddFood, water, addFoodTrigger, inventoryTrigger }) {
+  favorites, toggleFavorite, onView, onAddMealToWeek, onAddFood, onAddRecipe, water, addFoodTrigger, inventoryTrigger }) {
   const [sub, setSub] = useState("recipes"); // recipes | foods
   const [tab, setTab] = useState("All");
   const [q, setQ] = useState("");
+  const [creatingRecipe, setCreatingRecipe] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState([]);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
@@ -2050,6 +2208,9 @@ function MealsScreen({ meals, foods, foodsById, prefs, updatePref, updateFoodQty
 
       {sub === "recipes" ? (
         <div className="px-5 pb-6">
+          <button onClick={() => setCreatingRecipe(true)} className="tap btn-primary w-full flex items-center justify-center gap-2 mb-3" style={{ padding: "12px 0" }}>
+            <Plus size={16} /> Create Recipe
+          </button>
           <div className="scrollx flex gap-1.5 mb-3 pb-1">
             {MEAL_TABS.map((t) => (
               <button key={t} onClick={() => setTab(t)} className="tap chip"
@@ -2098,7 +2259,7 @@ function MealsScreen({ meals, foods, foodsById, prefs, updatePref, updateFoodQty
             <Plus size={16} /> Add Food
           </button>
           {filteredFoods.map((f) => (
-            <FoodCard key={f.id} food={f} prefs={prefs} updatePref={updatePref} updateFoodQty={updateFoodQty}
+            <FoodCard key={f.id} food={f} meals={meals} prefs={prefs} updatePref={updatePref} updateFoodQty={updateFoodQty}
               updateFoodPrice={updateFoodPrice} addStorePrice={addStorePrice} removeStorePrice={removeStorePrice} setPreferredStore={setPreferredStore}
               renameStore={renameStore} deleteFood={deleteFood} toggleStaple={toggleStaple} />
           ))}
@@ -2110,6 +2271,7 @@ function MealsScreen({ meals, foods, foodsById, prefs, updatePref, updateFoodQty
           onConfirm={(day, s) => { onAddMealToWeek(day, s, addToWeekMeal.id); setAddToWeekMeal(null); }} />
       )}
       {addFoodOpen && <AddFoodModal onClose={() => setAddFoodOpen(false)} onSave={(f) => { onAddFood(f); setAddFoodOpen(false); }} />}
+      {creatingRecipe && <CreateRecipeModal foods={foods} onClose={() => setCreatingRecipe(false)} onSave={(r) => { onAddRecipe(r); setCreatingRecipe(false); }} />}
     </div>
   );
 }
@@ -2445,9 +2607,9 @@ const PROGRESS_METRICS = [
   { id:"f", label:"Fat", color:"var(--plum)", max:70, group:"nutrition" },
   { id:"fiber", label:"Fiber", color:"var(--steel)", max:30, group:"nutrition" },
   { id:"water", label:"Water", color:"var(--steel)", max:100, group:"nutrition" },
-  { id:"energy", label:"Workout Energy", color:"var(--brick)", max:10, group:"gym" },
-  { id:"strength", label:"Strength", color:"var(--sage)", max:10, group:"gym" },
-  { id:"endurance", label:"Endurance", color:"var(--mustard)", max:10, group:"gym" },
+  { id:"energy", label:"Energy", color:"var(--brick)", max:10, group:"gym" },
+  { id:"strength", label:"Strength (workout days)", color:"var(--sage)", max:10, group:"gym" },
+  { id:"endurance", label:"Endurance (workout days)", color:"var(--mustard)", max:10, group:"gym" },
 ];
 
 function dailyTotals(foodLog, water, gymLog, iso, person) {
@@ -2533,27 +2695,38 @@ function TourCaption({ step, total, title, body, onNext, onBack, onExit }) {
    like flipping through a reference library than one long wall of text. */
 const LIBRARY_SHELVES = [
   { id: "energy", label: "Energy & Macros", icon: Flame, color: "var(--brick)" },
-  { id: "digestion", label: "Digestion & Micronutrients", icon: Salad, color: "var(--sage)" },
+  { id: "fats", label: "Fats & Cholesterol", icon: Droplet, color: "var(--plum)" },
+  { id: "digestion", label: "Digestion & Food Quality", icon: Salad, color: "var(--sage)" },
+  { id: "vitamins", label: "Vitamins & Minerals", icon: Star, color: "var(--mustard)" },
   { id: "hydration", label: "Hydration", icon: Droplet, color: "var(--steel)" },
-  { id: "quality", label: "Food Quality", icon: Wheat, color: "var(--mustard)" },
+  { id: "training", label: "Training & Movement", icon: Dumbbell, color: "var(--brick)" },
+  { id: "body", label: "Body Measurements", icon: User, color: "var(--blue)" },
 ];
+
+/* Built-in reference entries. The first dozen or so carry this app's own
+   in-context explanations; the rest are sourced from NIH MedlinePlus, NHLBI,
+   NIDDK, ODS, and NCI — public-domain U.S. government health definitions,
+   lightly trimmed for length. "Source" is shown on each entry. Anything the
+   user adds themselves (via "+ Add Term") is stored separately and merges
+   in alongside these. */
 const NUTRITION_TERMS = [
+  // ---- Energy & Macros ----
   { id: "calories", term: "Calories", shelf: "energy",
     teaser: "The basic unit of energy in food.",
     full: "A unit of energy. Your body burns calories just existing — breathing, digesting, thinking — plus whatever activity you do on top of that. Eating roughly your target keeps your energy balance steady; consistently eating far above or below it is what drives weight change over time.",
     related: ["macros", "glycogen"] },
   { id: "protein", term: "Protein", shelf: "energy",
     teaser: "Builds and repairs muscle tissue.",
-    full: "Builds and repairs muscle tissue — especially important around training, since workouts create small amounts of muscle damage that protein helps rebuild, stronger than before. It's also the most filling macro, which is why high-protein meals tend to curb snacking later.",
-    related: ["macros", "calories"] },
+    full: "Builds and repairs muscle tissue — especially important around training, since workouts create small amounts of muscle damage that protein helps rebuild, stronger than before. It's also the most filling macro, which is why high-protein meals tend to curb snacking later. Complete proteins (meat, dairy) supply all the amino acids your body can't make on its own; plant proteins are incomplete on their own, so combining different plant sources matters if you're eating meat-free.",
+    related: ["macros", "aminoacids"], source: "NIH MedlinePlus" },
   { id: "carbs", term: "Carbohydrates", shelf: "energy",
     teaser: "Your body's preferred quick-access fuel.",
-    full: "Your body and brain's preferred quick-access fuel. Around workouts specifically, carbs matter more than usual — they refill the glycogen your muscles burn through during training, which is exactly why pre-workout snacks in this app lean carb-heavy.",
-    related: ["glycogen", "netcarbs", "macros"] },
+    full: "Your body and brain's preferred quick-access fuel. Your digestive system changes carbohydrates into glucose, which your cells use for energy — any extra is stored in the liver and muscles as glycogen for later. Around workouts specifically, carbs matter more than usual, which is exactly why pre-workout snacks in this app lean carb-heavy.",
+    related: ["glycogen", "netcarbs", "macros", "bloodglucose"], source: "NIH MedlinePlus" },
   { id: "fat", term: "Fat", shelf: "energy",
     teaser: "Calorie-dense, needed for hormones.",
     full: "Needed for hormone production and absorbing certain vitamins (A, D, E, K). It's calorie-dense — more than double protein or carbs per gram — which is why pre-workout snacks are deliberately kept lower in fat: fat slows digestion, and you don't want a heavy stomach heading into training.",
-    related: ["macros", "calories"] },
+    related: ["macros", "totalfat"] },
   { id: "macros", term: "Macros (Macronutrients)", shelf: "energy",
     teaser: "Protein, carbs, and fat — together.",
     full: "Shorthand for protein, carbs, and fat together — the three nutrients that provide calories. \"Hitting your macros\" means hitting your individual targets for each, not just your total calorie number, since two meals with the same calories can affect training and recovery very differently depending on the mix.",
@@ -2562,10 +2735,86 @@ const NUTRITION_TERMS = [
     teaser: "Stored carbs, ready for training.",
     full: "The stored form of carbohydrate your muscles and liver keep on reserve for quick energy. Training burns through it steadily, which is why refilling it with carbs beforehand — and again afterward — keeps energy and recovery on track.",
     related: ["carbs", "netcarbs"] },
+  { id: "bloodglucose", term: "Blood Glucose", shelf: "energy",
+    teaser: "Blood sugar — your body's main fuel source.",
+    full: "Glucose, also called blood sugar, is the main sugar found in the blood and the main source of energy for your body. Carbohydrates are broken down into glucose during digestion.",
+    related: ["carbs", "sugar", "glycemicindex"], source: "NIH MedlinePlus" },
+  { id: "metabolism", term: "Metabolism", shelf: "energy",
+    teaser: "How your body turns food into energy.",
+    full: "The process your body uses to get or make energy from the food you eat.",
+    related: ["bmr", "energybalance"], source: "NIH MedlinePlus" },
+  { id: "bmr", term: "Basal Metabolic Rate", shelf: "energy",
+    teaser: "The energy cost of just being alive.",
+    full: "The measure of the energy necessary for maintaining basic functions, such as breathing, heart rate, and digestion — the calories you'd burn doing nothing at all.",
+    related: ["metabolism", "energybalance"], source: "NIH MedlinePlus" },
+  { id: "energybalance", term: "Energy Balance", shelf: "energy",
+    teaser: "Calories in vs. calories out.",
+    full: "The balance between the calories you get from eating and drinking and the calories you use up through physical activity and body processes like breathing and digesting food.",
+    related: ["calories", "energyconsumed"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "energyconsumed", term: "Energy Consumed", shelf: "energy",
+    teaser: "\"Energy in\" vs. \"energy out.\"",
+    full: "Energy is another word for calories. What you eat and drink is \"energy in.\" What you burn through physical activity is \"energy out.\"",
+    related: ["energybalance", "calories"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "digestion", term: "Digestion", shelf: "energy",
+    teaser: "Breaking food down into nutrients.",
+    full: "The process the body uses to break down food into nutrients, which it then uses for energy, growth, and cell repair.",
+    related: ["enzymes", "nutrient"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "enzymes", term: "Enzymes", shelf: "energy",
+    teaser: "Speed up chemical reactions in the body.",
+    full: "Substances that speed up chemical reactions in the body — including the reactions involved in digesting food.",
+    related: ["digestion"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "aminoacids", term: "Amino Acids", shelf: "energy",
+    teaser: "The building blocks of protein.",
+    full: "The building blocks of proteins. The body produces many amino acids and gets others from food. Amino acids are absorbed through the small intestine into the blood, which carries them throughout the body.",
+    related: ["protein"], source: "NIH MedlinePlus" },
+  { id: "fattyacid", term: "Fatty Acid", shelf: "energy",
+    teaser: "A major component of dietary fat.",
+    full: "A major component of fats, used by the body for energy and tissue development.",
+    related: ["fat", "totalfat"], source: "National Cancer Institute" },
+
+  // ---- Fats & Cholesterol ----
+  { id: "totalfat", term: "Total Fat", shelf: "fats",
+    teaser: "You need some — just not too much.",
+    full: "Fat gives you energy and helps your body absorb vitamins. It also plays a major role in your cholesterol levels. Not all fats are equal — saturated and trans fats are the ones worth limiting.",
+    related: ["saturatedfat", "transfat", "cholesterol"], source: "NIH MedlinePlus" },
+  { id: "saturatedfat", term: "Saturated Fat", shelf: "fats",
+    teaser: "Solid at room temperature; limit it.",
+    full: "Solid at room temperature — found in full-fat dairy, coconut oil, lard, palm oil, and the skin/fat of poultry, among other foods. Eating a diet high in saturated fat raises blood cholesterol and heart disease risk.",
+    related: ["totalfat", "cholesterol", "ldl"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "transfat", term: "Trans Fat", shelf: "fats",
+    teaser: "Created industrially; worth avoiding.",
+    full: "Created when liquid oils are turned into solid fats, like shortening and some margarines, to extend shelf life. Trans fat raises LDL (\"bad\") cholesterol and lowers HDL (\"good\") cholesterol.",
+    related: ["ldl", "hdl", "totalfat"], source: "NIH MedlinePlus" },
+  { id: "monofat", term: "Monounsaturated Fat", shelf: "fats",
+    teaser: "The \"healthy fat\" — in moderation.",
+    full: "Found in avocados, canola oil, nuts, olives and olive oil, and seeds. Eating more monounsaturated fat instead of saturated fat may help lower cholesterol — but it has the same calories as any other fat, so portion still matters.",
+    related: ["totalfat", "polyfat"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "polyfat", term: "Polyunsaturated Fat", shelf: "fats",
+    teaser: "Liquid at room temp — omega-3 & -6.",
+    full: "Liquid at room temperature. Omega-6 fatty acids come from vegetable oils like corn, safflower, and soybean oil. Omega-3s come from canola oil, flaxseed, walnuts, and fish and shellfish.",
+    related: ["monofat", "fattyacid"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "cholesterol", term: "Cholesterol", shelf: "fats",
+    teaser: "Waxy substance your body needs — in the right amount.",
+    full: "A waxy, fat-like substance found in every cell. Your body needs some to make hormones, vitamin D, and digestive substances, and makes all it needs on its own — but it's also found in some foods, and high blood levels raise heart disease risk.",
+    related: ["hdl", "ldl", "triglycerides"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "hdl", term: "HDL (\"Good\" Cholesterol)", shelf: "fats",
+    teaser: "Carries cholesterol back to the liver.",
+    full: "High-density lipoprotein — carries cholesterol from other parts of the body back to the liver, which removes it. Higher HDL is generally better.",
+    related: ["cholesterol", "ldl"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "ldl", term: "LDL (\"Bad\" Cholesterol)", shelf: "fats",
+    teaser: "Builds up in arteries when levels run high.",
+    full: "Low-density lipoprotein — carries cholesterol throughout the body. A high LDL level leads to a buildup of cholesterol in your arteries.",
+    related: ["cholesterol", "hdl", "saturatedfat"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "triglycerides", term: "Triglycerides", shelf: "fats",
+    teaser: "A type of fat found in the blood.",
+    full: "A type of fat found in your blood. Too much may raise the risk of coronary artery heart disease, especially in women.",
+    related: ["cholesterol"], source: "National Heart, Lung, and Blood Institute" },
+
+  // ---- Digestion & Food Quality ----
   { id: "fiber", term: "Fiber", shelf: "digestion",
     teaser: "The part of carbs you don't digest.",
-    full: "The part of carbohydrates your body can't fully digest. It slows digestion (helping you feel full longer), feeds gut bacteria, and helps regulate blood sugar. Found in vegetables, fruit, beans, and whole grains — notably low in most fast food, which is part of why the fast-food recommendations in this app call out fiber where it's genuinely present.",
-    related: ["netcarbs", "quality"] },
+    full: "A type of carbohydrate your body can't fully digest — labeled as soluble or insoluble fiber on food labels. It helps you feel full longer, aids digestion, helps prevent constipation, and helps regulate blood sugar. Found in vegetables, fruit, beans, and whole grains — notably low in most fast food, which is part of why the fast-food recommendations in this app call out fiber where it's genuinely present.",
+    related: ["netcarbs", "quality"], source: "NIH MedlinePlus" },
   { id: "netcarbs", term: "Net Carbs", shelf: "digestion",
     teaser: "Total carbs minus fiber.",
     full: "Total carbohydrates minus fiber — the carbs your body actually absorbs and uses for energy. This app tracks total carbs rather than net carbs, since total carbs is what matters most for workout fueling purposes.",
@@ -2573,64 +2822,310 @@ const NUTRITION_TERMS = [
   { id: "addedsugar", term: "Added Sugar", shelf: "digestion",
     teaser: "Sugar put in, not naturally there.",
     full: "Sugar added during processing — separate from the natural sugar already in fruit or dairy. It's counted the same as any other carb calorie-wise, but adds little else nutritionally, which is why whole foods with naturally occurring sugar (like fruit) are generally the better pick over similarly-sweet processed snacks.",
-    related: ["carbs", "quality"] },
-  { id: "hydration", term: "Hydration", shelf: "hydration",
-    teaser: "Water, tracked separately from food.",
-    full: "Water intake, tracked separately from food. Even mild dehydration measurably reduces workout performance and energy, which is part of why the Home hydration bar and the Energy Check-In both ask about it.",
-    related: ["electrolytes"] },
-  { id: "electrolytes", term: "Electrolytes", shelf: "hydration",
-    teaser: "Minerals lost through sweat.",
-    full: "Minerals — mainly sodium, potassium, and magnesium — lost through sweat during training. Plain water replaces fluid but not these; on longer or harder training days, a meal or snack with some sodium alongside water helps more than water alone.",
-    related: ["hydration"] },
-  { id: "quality", term: "Whole Foods vs. Processed", shelf: "quality",
+    related: ["carbs", "quality", "sugar"] },
+  { id: "sugar", term: "Sugar", shelf: "digestion",
+    teaser: "A simple, sweet carbohydrate.",
+    full: "A type of simple carbohydrate with a sweet taste. Found naturally in fruit, vegetables, milk, and dairy — and also added to many foods during processing. Your digestive system breaks all sugar down into glucose for your cells to use.",
+    related: ["addedsugar", "bloodglucose", "carbs"], source: "NIH MedlinePlus" },
+  { id: "glycemicindex", term: "Glycemic Index", shelf: "digestion",
+    teaser: "How fast a carb raises blood sugar.",
+    full: "Measures how a carbohydrate-containing food raises blood sugar. Higher-GI foods spike blood sugar faster — part of why quick, higher-GI carbs are recommended right before a workout, when fast energy is the goal.",
+    related: ["bloodglucose", "carbs"], source: "NIH MedlinePlus" },
+  { id: "gluten", term: "Gluten", shelf: "digestion",
+    teaser: "A protein in wheat, rye, and barley.",
+    full: "A protein found in wheat, rye, and barley — and sometimes in less obvious places like supplements or lip balm. This app's gluten-free tagging on foods and meals is built around avoiding these grains.",
+    related: [], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "nutrient", term: "Nutrient", shelf: "digestion",
+    teaser: "What your body actually uses from food.",
+    full: "Chemical compounds in food that the body uses to function properly and maintain health — protein, fat, carbohydrates, vitamins, and minerals are all nutrients.",
+    related: ["nutrition", "macros"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "nutrition", term: "Nutrition", shelf: "digestion",
+    teaser: "The study of food and how it fuels you.",
+    full: "The field of study focused on foods and the substances in them that help the body grow and stay healthy. Eating well in the right amounts gives you energy for daily activity, helps maintain a healthy weight, and can lower risk for diseases like diabetes and heart disease.",
+    related: ["nutrient", "diet"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "diet", term: "Diet", shelf: "digestion",
+    teaser: "What you eat and drink, overall.",
+    full: "Made up of everything you eat and drink. There are many kinds — vegetarian, weight-focused, or built around a specific health condition — but at its simplest, your diet is just your overall pattern of eating.",
+    related: ["nutrition"], source: "NIH MedlinePlus" },
+  { id: "quality", term: "Whole Foods vs. Processed", shelf: "digestion",
     teaser: "How much a food's been altered.",
     full: "Whole foods (a chicken breast, an apple, rice) are close to their natural state; processed foods have been altered — often with added sugar, sodium, or fat — for shelf life or flavor. Processing isn't automatically bad, but leaning toward whole foods for the bulk of your meals generally means more fiber and micronutrients for the same calories.",
     related: ["fiber", "addedsugar"] },
+  { id: "dietarysupplements", term: "Dietary Supplements", shelf: "digestion",
+    teaser: "Not the same testing bar as drugs.",
+    full: "A product taken to supplement the diet — containing one or more ingredients like vitamins, minerals, herbs, or amino acids. Unlike drugs, supplements don't have to go through the same testing for effectiveness and safety before reaching shelves.",
+    related: ["multivitamin", "rda"], source: "National Institutes of Health, Office of Dietary Supplements" },
+
+  // ---- Vitamins & Minerals ----
+  { id: "vitamins", term: "Vitamins", shelf: "vitamins",
+    teaser: "Substances the body needs in small amounts.",
+    full: "Substances the body needs to develop and function normally — vitamins A, C, D, E, K, choline, and the B vitamins (thiamin, riboflavin, niacin, pantothenic acid, biotin, B6, B12, folate).",
+    related: ["fatsolublevitamins", "watersolublevitamins"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "fatsolublevitamins", term: "Fat-Soluble Vitamins", shelf: "vitamins",
+    teaser: "A, D, E, K — stored in body fat.",
+    full: "Vitamins A, D, E, and K. Unlike water-soluble vitamins, the body stores these in the liver and fatty tissue, which is part of why dietary fat helps your body absorb them.",
+    related: ["watersolublevitamins", "vitamind"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "watersolublevitamins", term: "Water-Soluble Vitamins", shelf: "vitamins",
+    teaser: "The B vitamins and vitamin C.",
+    full: "All the B vitamins plus vitamin C. The body doesn't store these easily and flushes the extra out in urine — meaning a steady supply from food matters more than with fat-soluble vitamins.",
+    related: ["fatsolublevitamins", "vitaminc"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "vitamina", term: "Vitamin A", shelf: "vitamins",
+    teaser: "Vision, bone growth, immune function.",
+    full: "Plays a role in vision, bone growth, reproduction, cell function, and the immune system. Plant sources include colorful fruits and vegetables; animal sources include liver and whole milk.",
+    related: ["fatsolublevitamins"], source: "NIH MedlinePlus" },
+  { id: "vitaminb6", term: "Vitamin B6", shelf: "vitamins",
+    teaser: "Involved in metabolism and immune function.",
+    full: "Needed for many chemical reactions involved in metabolism, plus brain development during pregnancy and infancy and general immune function.",
+    related: ["watersolublevitamins"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "vitaminb12", term: "Vitamin B12", shelf: "vitamins",
+    teaser: "Nerve health, DNA, and red blood cells.",
+    full: "Keeps nerve and blood cells healthy and helps make DNA. Also helps prevent a type of anemia that causes tiredness and weakness. Found naturally in animal foods, and added to many fortified foods.",
+    related: ["watersolublevitamins"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "vitaminc", term: "Vitamin C", shelf: "vitamins",
+    teaser: "Antioxidant, skin and bone support.",
+    full: "An antioxidant important for skin, bones, and connective tissue. Promotes healing and helps the body absorb iron. Good sources: citrus, peppers, tomatoes, broccoli, and leafy greens.",
+    related: ["antioxidants", "watersolublevitamins"], source: "NIH MedlinePlus" },
+  { id: "vitamind", term: "Vitamin D", shelf: "vitamins",
+    teaser: "Helps you absorb calcium.",
+    full: "Helps your body absorb calcium, a main building block of bone — a lack of it can contribute to bone diseases. You get it from sunlight, diet, and supplements; egg yolks, saltwater fish, and liver are good food sources.",
+    related: ["calcium", "fatsolublevitamins"], source: "NIH MedlinePlus" },
+  { id: "vitamine", term: "Vitamin E", shelf: "vitamins",
+    teaser: "Antioxidant supporting immune function.",
+    full: "An antioxidant that plays a role in immune function and metabolic processes. Good sources include vegetable oils, nuts and seeds, and leafy greens.",
+    related: ["antioxidants", "fatsolublevitamins"], source: "NIH MedlinePlus" },
+  { id: "vitamink", term: "Vitamin K", shelf: "vitamins",
+    teaser: "Blood clotting and bone proteins.",
+    full: "Helps make proteins for healthy bones and tissues, and for blood clotting. Mostly found in green vegetables and dark berries; your gut bacteria also produce a small amount.",
+    related: ["fatsolublevitamins"], source: "NIH MedlinePlus" },
+  { id: "folate", term: "Folate", shelf: "vitamins",
+    teaser: "Needed for DNA and cell division.",
+    full: "A B-vitamin the body needs to make DNA and for cells to divide. Especially important for women before and during pregnancy, where it can help prevent major birth defects.",
+    related: ["watersolublevitamins"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "niacin", term: "Niacin", shelf: "vitamins",
+    teaser: "A B-vitamin for enzymes, skin, nerves.",
+    full: "A nutrient in the vitamin B complex, needed in small amounts. Helps enzymes work properly and keeps skin, nerves, and the digestive tract healthy.",
+    related: ["watersolublevitamins"], source: "National Cancer Institute" },
+  { id: "minerals", term: "Minerals", shelf: "vitamins",
+    teaser: "Elements your body needs from food.",
+    full: "Elements the body needs to develop and function normally, including calcium, phosphorus, potassium, sodium, chloride, magnesium, iron, zinc, iodine, and selenium.",
+    related: ["calcium", "iron", "magnesium"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "calcium", term: "Calcium", shelf: "vitamins",
+    teaser: "Builds bones, teeth, and more.",
+    full: "Stored almost entirely in bones and teeth to keep them strong. Also needed for muscles and blood vessels to contract and expand, for nerve signaling, and for hormone release.",
+    related: ["vitamind", "minerals"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "iron", term: "Iron", shelf: "vitamins",
+    teaser: "Carries oxygen through the blood.",
+    full: "Part of hemoglobin, the protein that carries oxygen from the lungs to the rest of the body, including muscles. Also important for cell growth and making certain hormones and connective tissue.",
+    related: ["minerals"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "magnesium", term: "Magnesium", shelf: "vitamins",
+    teaser: "Muscle, nerve, and blood sugar regulation.",
+    full: "Helps regulate muscle and nerve function, blood sugar levels, and blood pressure. Also helps the body make protein, bone, and DNA.",
+    related: ["electrolytes", "minerals"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "phosphorus", term: "Phosphorus", shelf: "vitamins",
+    teaser: "Bone health and cell function.",
+    full: "Helps keep bones healthy and supports blood vessel and muscle function. Found naturally in high-protein foods like meat, fish, nuts, and dairy.",
+    related: ["calcium", "minerals"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "potassium", term: "Potassium", shelf: "vitamins",
+    teaser: "Blood pressure and fluid balance.",
+    full: "Needed by your cells, nerves, and muscles to function properly. Helps regulate blood pressure, heart rhythm, and the water content in cells.",
+    related: ["electrolytes", "sodium"], source: "NIH MedlinePlus" },
+  { id: "sodium", term: "Sodium", shelf: "vitamins",
+    teaser: "Nerve and muscle function, fluid balance.",
+    full: "The element in table salt (sodium chloride). Needed in the right amount for nerve and muscle function and to keep the right fluid balance in the body — which is why sodium matters specifically around longer or sweatier workouts.",
+    related: ["electrolytes", "potassium"], source: "NIH MedlinePlus" },
+  { id: "zinc", term: "Zinc", shelf: "vitamins",
+    teaser: "Immune support and wound healing.",
+    full: "Found in cells throughout the body. Helps the immune system fight bacteria and viruses, supports wound healing, and is important for taste and smell.",
+    related: ["minerals"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "iodine", term: "Iodine", shelf: "vitamins",
+    teaser: "Needed to make thyroid hormones.",
+    full: "Needed to make thyroid hormones, which control the body's metabolism and other functions, and are important for bone and brain development during pregnancy and infancy.",
+    related: ["minerals", "metabolism"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "selenium", term: "Selenium", shelf: "vitamins",
+    teaser: "Reproduction, thyroid, DNA production.",
+    full: "Important for reproduction, thyroid function, and DNA production. Also helps protect cells from damage caused by free radicals and infections.",
+    related: ["minerals", "antioxidants"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "antioxidants", term: "Antioxidants", shelf: "vitamins",
+    teaser: "May help prevent some cell damage.",
+    full: "Substances that may prevent or delay some types of cell damage — beta-carotene, lutein, lycopene, selenium, and vitamins C and E are common examples, found in many fruits and vegetables.",
+    related: ["vitaminc", "vitamine", "selenium"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "multivitamin", term: "Multivitamin/Mineral Supplements", shelf: "vitamins",
+    teaser: "A combined vitamin + mineral supplement.",
+    full: "Supplements that combine a range of vitamins and minerals, sometimes with other ingredients like herbs. Help fill gaps when it's hard to get enough of certain nutrients from food alone.",
+    related: ["dietarysupplements", "rda"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "rda", term: "Recommended Dietary Allowance (RDA)", shelf: "vitamins",
+    teaser: "The daily target for a nutrient.",
+    full: "The amount of a given nutrient you should get each day. RDAs vary by age, gender, and whether a woman is pregnant or breastfeeding.",
+    related: ["dailyvalue"], source: "National Institutes of Health, Office of Dietary Supplements" },
+  { id: "dailyvalue", term: "Daily Value (DV)", shelf: "vitamins",
+    teaser: "The % on a nutrition label.",
+    full: "Tells you what percentage of a nutrient one serving of a food or supplement provides, compared to the recommended daily amount — the number you see as \"% DV\" on nutrition labels.",
+    related: ["rda"], source: "National Institutes of Health, Office of Dietary Supplements" },
+
+  // ---- Hydration ----
+  { id: "hydration", term: "Hydration", shelf: "hydration",
+    teaser: "Water, tracked separately from food.",
+    full: "Water intake, tracked separately from food. How much you need depends on your size, activity level, and climate. Even mild dehydration measurably reduces workout performance and energy, which is part of why the Home hydration bar and the Energy Check-In both ask about it.",
+    related: ["electrolytes", "dehydration"], source: "NIH MedlinePlus" },
+  { id: "dehydration", term: "Dehydration", shelf: "hydration",
+    teaser: "Not enough fluid to work properly.",
+    full: "Happens when you don't take in enough liquid to replace what you lose through urinating, sweating, or illness. Without enough fluid and electrolytes, your body can't work properly — which shows up as low energy, headaches, and reduced workout performance.",
+    related: ["hydration", "electrolytes"], source: "NIH MedlinePlus" },
+  { id: "electrolytes", term: "Electrolytes", shelf: "hydration",
+    teaser: "Minerals lost through sweat.",
+    full: "Minerals in body fluids — mainly sodium, potassium, magnesium, and chloride. Plain water replaces fluid but not these; on longer or harder training days, a meal or snack with some sodium alongside water helps more than water alone.",
+    related: ["hydration", "sodium", "potassium"], source: "NIH MedlinePlus" },
+
+  // ---- Training & Movement ----
+  { id: "aerobic", term: "Aerobic Exercise", shelf: "training",
+    teaser: "Gets your heart and lungs working.",
+    full: "Activity that moves your large muscles — arms and legs — making you breathe harder and your heart beat faster. Running, swimming, walking, and biking are all examples. Regular aerobic activity makes your heart and lungs stronger over time.",
+    related: ["heartrate", "targetheartrate"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "strengthtraining", term: "Strength Training", shelf: "training",
+    teaser: "Resistance work that builds muscle.",
+    full: "Exercise that works your muscles by making you push or pull against resistance — weights, bands, or your own bodyweight. Strengthens muscle and can improve bone strength and balance.",
+    related: ["aerobic", "flexibility"], source: "National Institute of Diabetes and Digestive and Kidney Diseases" },
+  { id: "flexibility", term: "Flexibility (Training)", shelf: "training",
+    teaser: "Stretching to improve range of motion.",
+    full: "Exercise that stretches and lengthens muscles, improving joint flexibility and keeping muscles limber — which helps prevent injury. Yoga, tai chi, and pilates are common examples.",
+    related: ["strengthtraining", "warmup", "cooldown"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "warmup", term: "Warm Up", shelf: "training",
+    teaser: "Ease into activity, about 5–10 min.",
+    full: "Starting a workout at a slow-to-medium pace to give your body time to prepare for more vigorous movement — typically 5 to 10 minutes.",
+    related: ["cooldown"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "cooldown", term: "Cool Down", shelf: "training",
+    teaser: "Ease out of activity, 5+ min.",
+    full: "Ending a workout by gradually slowing down — moving from jogging to walking, for example — so your body can relax gradually. Usually 5 minutes or more.",
+    related: ["warmup"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "heartrate", term: "Heart Rate", shelf: "training",
+    teaser: "Your pulse, in beats per minute.",
+    full: "How many times your heart beats per minute. A resting adult pulse is usually 60–100 beats per minute after at least 10 minutes of rest.",
+    related: ["maxheartrate", "targetheartrate"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "maxheartrate", term: "Maximum Heart Rate", shelf: "training",
+    teaser: "The fastest your heart can beat.",
+    full: "The fastest your heart can beat — used as the basis for calculating training intensity zones like target heart rate.",
+    related: ["heartrate", "targetheartrate"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "targetheartrate", term: "Target Heart Rate", shelf: "training",
+    teaser: "Your ideal training-intensity zone.",
+    full: "A percentage of your maximum heart rate, based on age. The activity level best for general health uses 50–75% of max heart rate — that range is your target heart rate zone.",
+    related: ["maxheartrate", "heartrate"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "activitycount", term: "Activity Count", shelf: "training",
+    teaser: "Any movement that takes more energy than resting.",
+    full: "Physical activity is any body movement that works your muscles and takes more energy than resting — walking, dancing, gardening, and yoga all count, not just structured workouts.",
+    related: ["aerobic"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "perspiration", term: "Perspiration", shelf: "training",
+    teaser: "Sweat — your body's cooling system.",
+    full: "A clear, salty liquid produced by skin glands as your body's way of cooling itself. Sweating heavily during exercise is normal and part of why electrolyte and fluid replacement matters on hard training days.",
+    related: ["electrolytes", "dehydration"], source: "NIH MedlinePlus" },
+
+  // ---- Body Measurements ----
+  { id: "bmi", term: "Body Mass Index (BMI)", shelf: "body",
+    teaser: "An estimate of body fat from height + weight.",
+    full: "An estimate of body fat, calculated from height and weight. Categorizes you as underweight, normal, overweight, or obese, and can help gauge risk for weight-related conditions — though it doesn't account for muscle mass, so it's a rough estimate, not a full picture.",
+    related: ["weight", "height"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "weight", term: "Weight (Body Mass)", shelf: "body",
+    teaser: "Tracked in Profile over time.",
+    full: "The mass or quantity of your heaviness, in pounds or kilograms. This app's Weight section under Profile lets you log it over time against a goal, separate from day-to-day nutrition tracking.",
+    related: ["bmi"], source: "NIH MedlinePlus" },
+  { id: "height", term: "Height", shelf: "body",
+    teaser: "Used alongside weight for BMI.",
+    full: "The distance from the bottom of your feet to the top of your head when standing up straight — used together with weight to estimate BMI.",
+    related: ["bmi", "weight"], source: "NIH MedlinePlus" },
+  { id: "bloodpressure", term: "Blood Pressure", shelf: "body",
+    teaser: "The force of blood against artery walls.",
+    full: "The force of blood pushing against artery walls as your heart pumps. Written as two numbers: systolic (pressure during a heartbeat) over diastolic (pressure at rest between beats) — for example, 120/80.",
+    related: ["heartrate"], source: "National Heart, Lung, and Blood Institute" },
+  { id: "bodytemperature", term: "Body Temperature", shelf: "body",
+    teaser: "A measure of your body's heat level.",
+    full: "A measure of your body's level of heat — a normal baseline that can shift with illness, activity, or environment.",
+    related: [], source: "NIH MedlinePlus" },
 ];
 
-function NutritionLibrary() {
-  const [shelf, setShelf] = useState("all");
-  const [q, setQ] = useState("");
-  const [openId, setOpenId] = useState(null);
-  const termsById = useMemo(() => { const m = {}; NUTRITION_TERMS.forEach((t) => (m[t.id] = t)); return m; }, []);
-  const filtered = NUTRITION_TERMS.filter((t) =>
-    (shelf === "all" || t.shelf === shelf) && t.term.toLowerCase().includes(q.toLowerCase())
-  );
-  const open = openId ? termsById[openId] : null;
-  const openShelf = open ? LIBRARY_SHELVES.find((s) => s.id === open.shelf) : null;
 
+const CUSTOM_SHELF = { id: "custom", label: "Your Own Entries", icon: Star, color: "var(--blue)" };
+
+function AddTermForm({ onSave, onCancel }) {
+  const [term, setTerm] = useState("");
+  const [aka, setAka] = useState("");
+  const [full, setFull] = useState("");
+  const [shelf, setShelf] = useState("energy");
+  const canSave = term.trim() && full.trim();
   return (
-    <div className="card mb-3 overflow-hidden">
-      <div className="px-4 pt-3.5 pb-3" style={{ background: "var(--paper-3)" }}>
-        <div className="flex items-center gap-2.5 mb-2.5">
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--sage)22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <BookOpen size={16} color="var(--sage)" />
-          </div>
-          <div>
-            <div className="font-display font-bold text-[15.5px]">Nutrition Library</div>
-            <div className="text-[11px]" style={{ color: "var(--ink-faint)" }}>{NUTRITION_TERMS.length} entries across {LIBRARY_SHELVES.length} shelves</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 px-3 rounded-2xl mb-2.5" style={{ background: "var(--paper-2)" }}>
-          <Search size={13} style={{ color: "var(--ink-faint)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the library…" className="input" style={{ border: "none", padding: "8px 0", background: "transparent", fontSize: 13 }} />
-        </div>
-        <div className="scrollx flex gap-1.5 pb-0.5">
-          <button onClick={() => setShelf("all")} className="tap chip" style={{ whiteSpace: "nowrap", ...(shelf === "all" ? { background: "var(--ink)", color: "var(--paper-2)", borderColor: "var(--ink)" } : {}) }}>All Shelves</button>
+    <div>
+      <Field label="Term or name"><input value={term} onChange={(e) => setTerm(e.target.value)} className="input" placeholder="e.g. Creatine" /></Field>
+      <div className="mt-3"><Field label="Also known as (optional)"><input value={aka} onChange={(e) => setAka(e.target.value)} className="input" placeholder="e.g. Creatine monohydrate" /></Field></div>
+      <div className="mt-3">
+        <span className="text-[11.5px] font-bold block mb-1" style={{ color: "var(--ink-faint)" }}>Shelf</span>
+        <div className="scrollx flex gap-1.5 pb-1">
           {LIBRARY_SHELVES.map((s) => (
             <button key={s.id} onClick={() => setShelf(s.id)} className="tap chip" style={{ whiteSpace: "nowrap", ...(shelf === s.id ? { background: s.color, color: "#fff", borderColor: s.color } : {}) }}>{s.label}</button>
           ))}
         </div>
       </div>
+      <div className="mt-3">
+        <span className="text-[11.5px] font-bold block mb-1" style={{ color: "var(--ink-faint)" }}>What it means</span>
+        <textarea value={full} onChange={(e) => setFull(e.target.value)} className="input" rows={4} placeholder="Plain-English definition, why it matters, whatever's common knowledge about it…" />
+      </div>
+      <div className="flex gap-2 mt-4">
+        <button onClick={onCancel} className="tap btn-ghost" style={{ flex: 1, padding: "12px 0" }}>Cancel</button>
+        <button disabled={!canSave} onClick={() => onSave({ term: term.trim(), aka: aka.trim(), full: full.trim(), shelf })}
+          className="tap btn-primary" style={{ flex: 1, padding: "12px 0", opacity: canSave ? 1 : .4 }}>Add to Library</button>
+      </div>
+    </div>
+  );
+}
 
-      <div className="p-3">
+function LibraryScreen({ onBack, customTerms, addCustomTerm, removeCustomTerm }) {
+  const [shelf, setShelf] = useState("all");
+  const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState(null);
+  const [adding, setAdding] = useState(false);
+
+  const allTerms = useMemo(() => [
+    ...NUTRITION_TERMS,
+    ...customTerms.map((t) => ({ ...t, shelf: "custom", teaser: t.aka || t.full.slice(0, 46) + (t.full.length > 46 ? "…" : ""), related: [] })),
+  ], [customTerms]);
+  const allShelves = useMemo(() => customTerms.length ? [...LIBRARY_SHELVES, CUSTOM_SHELF] : LIBRARY_SHELVES, [customTerms]);
+  const termsById = useMemo(() => { const m = {}; allTerms.forEach((t) => (m[t.id] = t)); return m; }, [allTerms]);
+  const filtered = allTerms.filter((t) =>
+    (shelf === "all" || t.shelf === shelf) && (t.term.toLowerCase().includes(q.toLowerCase()) || (t.aka || "").toLowerCase().includes(q.toLowerCase()))
+  );
+  const open = openId ? termsById[openId] : null;
+  const openShelf = open ? allShelves.find((s) => s.id === open.shelf) : null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-5 pt-6 pb-2">
+        <button onClick={onBack} className="tap" style={{ padding: 4 }}><ArrowLeft size={19} /></button>
+        <h1 className="font-display font-bold text-[23px]">Nutrition Library</h1>
+      </div>
+      <div className="px-5 pt-2 pb-3">
+        <p className="text-[13px] mb-3" style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
+          {NUTRITION_TERMS.length} reference entries — mostly sourced from NIH and other U.S. health agencies — plus anything you've added yourselves.
+        </p>
+        <button onClick={() => setAdding(true)} className="tap btn-primary w-full flex items-center justify-center gap-2 mb-3" style={{ padding: "13px 0" }}>
+          <Plus size={16} /> Add Your Own Term
+        </button>
+        <div className="flex items-center gap-2 px-3 rounded-2xl mb-2.5" style={{ background: "var(--paper-3)" }}>
+          <Search size={13} style={{ color: "var(--ink-faint)" }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the library…" className="input" style={{ border: "none", padding: "9px 0", background: "transparent", fontSize: 13 }} />
+        </div>
+        <div className="scrollx flex gap-1.5 pb-0.5">
+          <button onClick={() => setShelf("all")} className="tap chip" style={{ whiteSpace: "nowrap", ...(shelf === "all" ? { background: "var(--ink)", color: "var(--paper-2)", borderColor: "var(--ink)" } : {}) }}>All Shelves</button>
+          {allShelves.map((s) => (
+            <button key={s.id} onClick={() => setShelf(s.id)} className="tap chip" style={{ whiteSpace: "nowrap", ...(shelf === s.id ? { background: s.color, color: "#fff", borderColor: s.color } : {}) }}>{s.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-5 pb-8">
         {filtered.length === 0 && <EmptyNote>No entries match that search.</EmptyNote>}
         <div className="grid grid-cols-2 gap-2">
           {filtered.map((t) => {
-            const s = LIBRARY_SHELVES.find((sh) => sh.id === t.shelf);
+            const s = allShelves.find((sh) => sh.id === t.shelf) || CUSTOM_SHELF;
             const Icon = s.icon;
             return (
-              <button key={t.id} onClick={() => setOpenId(t.id)} className="tap text-left p-3 rounded-2xl" style={{ background: "var(--paper)", border: `1px solid var(--line-soft)`, borderLeft: `3px solid ${s.color}` }}>
+              <button key={t.id} onClick={() => setOpenId(t.id)} className="tap text-left p-3 rounded-2xl" style={{ background: "var(--paper-2)", border: `1px solid var(--line-soft)`, borderLeft: `3px solid ${s.color}` }}>
                 <Icon size={13} color={s.color} style={{ marginBottom: 4 }} />
                 <div className="font-display font-bold text-[12.5px] leading-tight">{t.term}</div>
                 <div className="text-[10.5px] mt-0.5" style={{ color: "var(--ink-faint)", lineHeight: 1.3 }}>{t.teaser}</div>
@@ -2645,8 +3140,10 @@ function NutritionLibrary() {
           <span className="chip inline-flex items-center gap-1 mb-3" style={{ background: openShelf.color + "22", borderColor: "transparent", color: openShelf.color }}>
             <openShelf.icon size={11} /> {openShelf.label}
           </span>
+          {open.aka && <div className="text-[12px] mb-2" style={{ color: "var(--ink-faint)" }}>Also known as: {open.aka}</div>}
           <p className="text-[13.5px]" style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>{open.full}</p>
-          {open.related.length > 0 && (
+          {open.source && <div className="text-[11px] mt-3" style={{ color: "var(--ink-faint)" }}>Source: {open.source}</div>}
+          {open.related && open.related.length > 0 && (
             <div className="mt-5">
               <div className="text-[12px] font-bold mb-2" style={{ color: "var(--ink-faint)" }}>SEE ALSO</div>
               <div className="flex gap-1.5 flex-wrap">
@@ -2656,13 +3153,22 @@ function NutritionLibrary() {
               </div>
             </div>
           )}
+          {open.custom && (
+            <button onClick={() => { removeCustomTerm(open.id); setOpenId(null); }} className="tap text-[12.5px] font-semibold mt-5" style={{ color: "var(--brick)" }}>Remove This Entry</button>
+          )}
+        </Sheet>
+      )}
+
+      {adding && (
+        <Sheet title="Add Your Own Term" onClose={() => setAdding(false)}>
+          <AddTermForm onCancel={() => setAdding(false)} onSave={(draft) => { addCustomTerm(draft); setAdding(false); }} />
         </Sheet>
       )}
     </div>
   );
 }
 
-function HelpScreen({ onBack, onStartTour }) {
+function HelpScreen({ onBack, onStartTour, onOpenLibrary }) {
   return (
     <div>
       <div className="flex items-center gap-2 px-5 pt-6 pb-2">
@@ -2712,7 +3218,7 @@ function HelpScreen({ onBack, onStartTour }) {
           <HelpB><b>Add Food to Pantry</b> creates a brand-new item in your food database.</HelpB>
           <HelpB><b>I Need a Snack</b> asks how hungry you are and how long until your workout, then recommends something.</HelpB>
           <HelpB><b>Eating Out Tonight</b> helps you fit a restaurant meal into today's remaining calories.</HelpB>
-          <HelpB><b>Energy Check-In</b> logs how you feel before and after training — this is what powers the Workout Energy charts in Progress.</HelpB>
+          <HelpB><b>Energy Check-In</b> works any time of day — how you feel, hunger, hydration, sleep, and how long since you last ate. Flip on "Connected to a workout?" to also get pre-workout fueling advice and log post-workout numbers; leave it off for a plain energy check-in. Either way, it's what powers the Energy charts in Progress.</HelpB>
           <HelpB><b>See Trends</b> jumps straight to the Progress screen.</HelpB>
         </HelpSection>
 
@@ -2786,7 +3292,8 @@ function HelpScreen({ onBack, onStartTour }) {
           <HelpH>FAVORITE RESTAURANTS</HelpH>
           <HelpP>Add or remove restaurants here — they show up as quick suggestions inside Eating Out Tonight.</HelpP>
         </HelpSection>
-        <NutritionLibrary />
+
+        <div className="mb-3"><BigButton icon={BookOpen} label="Nutrition Library" sub="A full searchable reference — now its own place, off the tour" onClick={onOpenLibrary} /></div>
 
         <HelpSection title="Healthy Grocery Shopping" icon={ShoppingBag} color="var(--mustard)">
           <HelpP>A few practical habits that make the Groceries tab actually pay off, beyond just following the Need/Have/Buy list.</HelpP>
@@ -2985,7 +3492,7 @@ function WeightLogRow({ entry, onRemove }) {
   );
 }
 
-function ProfileOverview({ personId, profile, updateProfile, toggleWorkoutDay, weightEntries, logWeight, removeWeightEntry, onOpenPreferences, onOpenProgress, onOpenHelp, addRestaurant, removeRestaurant }) {
+function ProfileOverview({ personId, profile, updateProfile, toggleWorkoutDay, weightEntries, logWeight, removeWeightEntry, onOpenPreferences, onOpenProgress, onOpenHelp, onOpenLibrary, onOpenRoutine, addRestaurant, removeRestaurant }) {
   const p = PEOPLE[personId];
   const [logging, setLogging] = useState(false);
   const [weightDraft, setWeightDraft] = useState("");
@@ -3086,12 +3593,112 @@ function ProfileOverview({ personId, profile, updateProfile, toggleWorkoutDay, w
 
       <div className="mb-2.5"><BigButton icon={Heart} label="Food Preferences" sub="Likes, dislikes, and Never Recommend list" onClick={onOpenPreferences} /></div>
       <div className="mb-2.5"><BigButton icon={TrendingUp} label="Progress" sub="Weekly nutrition & gym-energy trends" onClick={onOpenProgress} /></div>
+      <div className="mb-2.5"><BigButton icon={BookOpen} label="Nutrition Library" sub="A searchable reference of nutrition & fitness terms" onClick={onOpenLibrary} /></div>
+      <div className="mb-2.5"><BigButton icon={Calendar} label="Plan · Purchase · Cook Schedule" sub="When you plan the week, shop, and cook" onClick={onOpenRoutine} /></div>
       <div><BigButton icon={Info} label="How to Use Trophé" sub="A full walkthrough of every tab, tab by tab" onClick={onOpenHelp} /></div>
     </div>
   );
 }
 
-function ProfileScreen({ person, setPerson, profiles, updateProfile, toggleWorkoutDay, weightLog, logWeight, removeWeightEntry, onOpenPreferences, onOpenProgress, onOpenHelp, addRestaurant, removeRestaurant }) {
+/* ------------------------------ Plan · Purchase · Cook routine ------------------------------ */
+
+function DayPicker({ value, onChange }) {
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {Object.keys(DAY_SHORT).map((d) => (
+        <button key={d} onClick={() => onChange(d)} className="tap chip" style={value === d ? { background: "var(--ink)", color: "var(--paper-2)", borderColor: "var(--ink)" } : {}}>{DAY_SHORT[d]}</button>
+      ))}
+    </div>
+  );
+}
+
+function RoutineStep({ number, color, title, sub, children }) {
+  return (
+    <div className="card p-4 mb-3">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div style={{ width: 26, height: 26, borderRadius: 999, background: color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }} className="font-mono font-bold text-[13px]">{number}</div>
+        <div>
+          <div className="font-display font-bold text-[15px]">{title}</div>
+          <div className="text-[11px]" style={{ color: "var(--ink-faint)" }}>{sub}</div>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function RoutineScreen({ onBack, routine, updateRoutine }) {
+  const summary = routine.cookStyle === "prep"
+    ? `Plan ${DAY_SHORT[routine.planDay]} · Shop ${DAY_SHORT[routine.shopDay]} · Meal-prep ${DAY_SHORT[routine.prepDay]}`
+    : `Plan ${DAY_SHORT[routine.planDay]} · Shop ${DAY_SHORT[routine.shopDay]} · Cook fresh most days`;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-5 pt-6 pb-2">
+        <button onClick={onBack} className="tap" style={{ padding: 4 }}><ArrowLeft size={19} /></button>
+        <h1 className="font-display font-bold text-[23px]">Plan · Purchase · Cook</h1>
+      </div>
+      <div className="px-5 pt-2 pb-3">
+        <p className="text-[13px] mb-3" style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
+          A simple weekly rhythm so planning, shopping, and cooking each have their own slot instead of all landing on you at once. This shows up as a reminder on Home when today matches one of these.
+        </p>
+        <div className="p-3 rounded-2xl mb-1" style={{ background: "var(--sage-soft)" }}>
+          <div className="text-[12.5px] font-semibold" style={{ color: "var(--sage)" }}>{summary}</div>
+        </div>
+      </div>
+
+      <div className="px-5 pb-8">
+        <RoutineStep number="1" color="var(--blue)" title="Plan" sub="When you sit down and build/adjust the week">
+          <DayPicker value={routine.planDay} onChange={(d) => updateRoutine("planDay", d)} />
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-[12.5px] font-semibold" style={{ color: "var(--ink-soft)" }}>Time</span>
+            <input type="time" defaultValue={to24(routine.planTime)} onChange={(e) => e.target.value && updateRoutine("planTime", format12(e.target.value))}
+              className="font-mono text-[13px]" style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "4px 8px" }} />
+          </div>
+        </RoutineStep>
+
+        <RoutineStep number="2" color="var(--mustard)" title="Purchase" sub="When you actually go grocery shopping">
+          <DayPicker value={routine.shopDay} onChange={(d) => updateRoutine("shopDay", d)} />
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-[12.5px] font-semibold" style={{ color: "var(--ink-soft)" }}>Time</span>
+            <input type="time" defaultValue={to24(routine.shopTime)} onChange={(e) => e.target.value && updateRoutine("shopTime", format12(e.target.value))}
+              className="font-mono text-[13px]" style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "4px 8px" }} />
+          </div>
+        </RoutineStep>
+
+        <RoutineStep number="3" color="var(--brick)" title="Cook" sub="Batch meal-prep once, or cook fresh each day">
+          <div className="seg-wrap mb-3" style={{ width: "100%" }}>
+            {[["prep","Meal Prep"],["daily","Cook Daily"]].map(([id, label]) => (
+              <button key={id} onClick={() => updateRoutine("cookStyle", id)} className={`tap seg-btn ${routine.cookStyle === id ? "seg-btn-on" : "seg-btn-off"}`} style={{ flex: 1 }}>{label}</button>
+            ))}
+          </div>
+          {routine.cookStyle === "prep" ? (
+            <>
+              <div className="text-[11.5px] mb-2" style={{ color: "var(--ink-faint)" }}>Which day do you batch-cook for the week?</div>
+              <DayPicker value={routine.prepDay} onChange={(d) => updateRoutine("prepDay", d)} />
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-[12.5px] font-semibold" style={{ color: "var(--ink-soft)" }}>Time</span>
+                <input type="time" defaultValue={to24(routine.prepTime)} onChange={(e) => e.target.value && updateRoutine("prepTime", format12(e.target.value))}
+                  className="font-mono text-[13px]" style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "4px 8px" }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-[11.5px] mb-2" style={{ color: "var(--ink-faint)" }}>About what time do you usually cook dinner?</div>
+              <div className="flex items-center justify-between">
+                <span className="text-[12.5px] font-semibold" style={{ color: "var(--ink-soft)" }}>Time</span>
+                <input type="time" defaultValue={to24(routine.dailyCookTime)} onChange={(e) => e.target.value && updateRoutine("dailyCookTime", format12(e.target.value))}
+                  className="font-mono text-[13px]" style={{ border: "1px solid var(--line)", borderRadius: 8, padding: "4px 8px" }} />
+              </div>
+            </>
+          )}
+        </RoutineStep>
+      </div>
+    </div>
+  );
+}
+
+function ProfileScreen({ person, setPerson, profiles, updateProfile, toggleWorkoutDay, weightLog, logWeight, removeWeightEntry, onOpenPreferences, onOpenProgress, onOpenHelp, onOpenLibrary, onOpenRoutine, addRestaurant, removeRestaurant }) {
   return (
     <div>
       <ScreenHeader title="Profiles" />
@@ -3108,8 +3715,10 @@ function ProfileScreen({ person, setPerson, profiles, updateProfile, toggleWorko
               </div>
             ))}
           </div>
+          <div className="mb-2.5"><BigButton icon={Calendar} label="Plan · Purchase · Cook Schedule" sub="When you plan the week, shop, and cook" onClick={onOpenRoutine} /></div>
           <div className="mb-2.5"><BigButton icon={Heart} label="Food Preferences" sub="Manage both profiles & shared-meal conflicts" onClick={onOpenPreferences} /></div>
           <div className="mb-2.5"><BigButton icon={TrendingUp} label="Progress" sub="Weekly nutrition & gym-energy trends" onClick={onOpenProgress} /></div>
+          <div className="mb-2.5"><BigButton icon={BookOpen} label="Nutrition Library" sub="A searchable reference of nutrition & fitness terms" onClick={onOpenLibrary} /></div>
           <div><BigButton icon={Info} label="How to Use Trophé" sub="A full walkthrough of every tab, tab by tab" onClick={onOpenHelp} /></div>
         </div>
       ) : (
@@ -3117,7 +3726,7 @@ function ProfileScreen({ person, setPerson, profiles, updateProfile, toggleWorko
           toggleWorkoutDay={(d) => toggleWorkoutDay(person, d)} weightEntries={weightLog?.[person] || []}
           logWeight={(w) => logWeight(person, w)} removeWeightEntry={(id) => removeWeightEntry(person, id)}
           addRestaurant={(r) => addRestaurant(person, r)} removeRestaurant={(r) => removeRestaurant(person, r)}
-          onOpenPreferences={onOpenPreferences} onOpenProgress={onOpenProgress} onOpenHelp={onOpenHelp} />
+          onOpenPreferences={onOpenPreferences} onOpenProgress={onOpenProgress} onOpenHelp={onOpenHelp} onOpenLibrary={onOpenLibrary} onOpenRoutine={onOpenRoutine} />
       )}
     </div>
   );
@@ -3224,18 +3833,26 @@ function GymCheckinModal({ onClose, onSave, onShowSnackOptions }) {
   const [hydration, setHydration] = useState(5);
   const [sleep, setSleep] = useState(7);
   const [lastCarb, setLastCarb] = useState(3);
+  const [workoutLinked, setWorkoutLinked] = useState(false);
   const [post, setPost] = useState({ energy: 7, strength: 7, endurance: 7, recovery: 7 });
 
   const ENERGY_OPTS = [["full","Fully energized",Battery],["good","Good",Battery],["slight","Slightly tired",BatteryLow],["low","Low energy",BatteryLow],["exhausted","Exhausted",BatteryLow]];
+  const lowEnergy = energy === "low" || energy === "exhausted";
+
+  const save = (extra) => { onSave({ energy, hunger, hydration, sleep, lastCarb, workoutLinked, ...extra }); onClose(); };
 
   return (
-    <Sheet title="Gym Energy Check-In" onClose={onClose} footer={
+    <Sheet title="Energy Check-In" onClose={onClose} footer={
       phase === "pre" ? (
-        <button disabled={!energy} onClick={() => setPhase("result")} className="tap btn-primary w-full" style={{ padding: "12px 0", opacity: energy ? 1 : .4 }}>Get Recommendation</button>
+        <button disabled={!energy} onClick={() => setPhase("result")} className="tap btn-primary w-full" style={{ padding: "12px 0", opacity: energy ? 1 : .4 }}>Get Read on My Energy</button>
       ) : phase === "result" ? (
-        <button onClick={() => setPhase("post")} className="tap btn-ghost w-full" style={{ padding: "12px 0" }}>Log Post-Workout →</button>
+        workoutLinked ? (
+          <button onClick={() => setPhase("post")} className="tap btn-ghost w-full" style={{ padding: "12px 0" }}>Log Post-Workout →</button>
+        ) : (
+          <button onClick={() => save({})} className="tap btn-primary w-full" style={{ padding: "12px 0" }}>Save Check-In</button>
+        )
       ) : (
-        <button onClick={() => { onSave({ energy, hunger, hydration, sleep, lastCarb, ...post }); onClose(); }} className="tap btn-primary w-full" style={{ padding: "12px 0" }}>Save Check-In</button>
+        <button onClick={() => save(post)} className="tap btn-primary w-full" style={{ padding: "12px 0" }}>Save Check-In</button>
       )
     }>
       {phase === "pre" && (
@@ -3252,22 +3869,33 @@ function GymCheckinModal({ onClose, onSave, onShowSnackOptions }) {
           <SliderField label="Hunger" value={hunger} onChange={setHunger} />
           <SliderField label="Hydration" value={hydration} onChange={setHydration} />
           <SliderField label="Sleep last night (hrs)" value={sleep} max={12} onChange={setSleep} />
-          <SliderField label="Hours since last carb intake" value={lastCarb} max={8} onChange={setLastCarb} />
+          <SliderField label="Hours since you last ate" value={lastCarb} max={8} onChange={setLastCarb} />
+          <div className="flex items-center justify-between mt-4 p-3 rounded-2xl" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+            <div style={{ maxWidth: "78%" }}>
+              <div className="text-[13px] font-semibold">Connected to a workout?</div>
+              <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-faint)" }}>Off by default — this works as a general energy check-in any time of day.</div>
+            </div>
+            <button onClick={() => setWorkoutLinked(!workoutLinked)} className="tap" style={{ width: 44, height: 26, borderRadius: 999, background: workoutLinked ? "var(--brick)" : "var(--line)", position: "relative", flexShrink: 0 }}>
+              <span style={{ position: "absolute", top: 2, left: workoutLinked ? 20 : 2, width: 22, height: 22, borderRadius: 999, background: "#fff", transition: "left .15s" }} />
+            </button>
+          </div>
         </div>
       )}
       {phase === "result" && (
         <div>
-          <div className="p-4 rounded-2xl mb-3" style={{ background: (energy === "low" || energy === "exhausted") ? "var(--brick-soft)" : "var(--sage-soft)" }}>
+          <div className="p-4 rounded-2xl mb-3" style={{ background: lowEnergy ? "var(--brick-soft)" : "var(--sage-soft)" }}>
             <div className="text-[13.5px]" style={{ color: "var(--ink)" }}>
-              Your energy is <b>{ENERGY_OPTS.find((o) => o[0] === energy)[1].toLowerCase()}</b> and your last carbohydrate intake was about <b>{lastCarb}h</b> ago.
+              Your energy is <b>{ENERGY_OPTS.find((o) => o[0] === energy)[1].toLowerCase()}</b> and it's been about <b>{lastCarb}h</b> since you last ate.
             </div>
           </div>
-          <div className="text-[12px] font-bold mb-1" style={{ color: "var(--ink-faint)" }}>RECOMMENDED</div>
+          <div className="text-[12px] font-bold mb-1" style={{ color: "var(--ink-faint)" }}>{workoutLinked ? "RECOMMENDED" : "WORTH NOTING"}</div>
           <div className="text-[14.5px] font-semibold mb-1">
-            {(energy === "low" || energy === "exhausted" || lastCarb >= 4) ? "25–40g quick carbohydrates before training" : "You're fueled — a light top-off is optional"}
+            {workoutLinked
+              ? ((lowEnergy || lastCarb >= 4) ? "25–40g quick carbohydrates before training" : "You're fueled — a light top-off is optional")
+              : ((lowEnergy && lastCarb >= 4) ? "Low energy and it's been a while since you ate — a snack would likely help" : lowEnergy ? "Low energy — worth checking hydration and sleep too, not just food" : "You're in a solid spot")}
           </div>
           {onShowSnackOptions && (
-            <button onClick={() => { onShowSnackOptions(); onClose(); }} className="tap btn-ghost w-full flex items-center justify-center gap-2 mt-4" style={{ padding: "11px 0" }}>
+            <button onClick={onShowSnackOptions} className="tap btn-ghost w-full flex items-center justify-center gap-2 mt-4" style={{ padding: "11px 0" }}>
               <Zap size={14} /> Show Snack Options
             </button>
           )}
@@ -3385,6 +4013,7 @@ const STORAGE_KEYS = {
   groceryChecked: "hearth:grocery-checked", profiles: "hearth:profiles", allowNever: "hearth:allow-never",
   timeOverrides: "hearth:time-overrides", budget: "hearth:grocery-budget", weightLog: "hearth:weight-log", gymLog: "hearth:gym-log",
   workoutOverrides: "hearth:workout-overrides",
+  customTerms: "hearth:custom-terms", routine: "hearth:routine", customMeals: "hearth:custom-meals",
 };
 
 async function loadKey(key, fallback) {
@@ -3423,6 +4052,9 @@ export default function TropheApp() {
   const [weightLog, setWeightLog] = useState({ tyler: [], elizabeth: [] });
   const [gymLog, setGymLog] = useState({});
   const [workoutOverrides, setWorkoutOverridesState] = useState({});
+  const [customTerms, setCustomTerms] = useState([]);
+  const [routine, setRoutine] = useState(DEFAULT_ROUTINE);
+  const [customMeals, setCustomMeals] = useState([]);
 
   const [modal, setModal] = useState(null); // 'snack' | 'gym' | 'restaurant' | 'logFood'
   const [mealDetail, setMealDetail] = useState(null); // { meal, slot, day }
@@ -3432,7 +4064,7 @@ export default function TropheApp() {
   // ---- load once ----
   useEffect(() => {
     (async () => {
-      const [f, pr, ov, lk, fl, wt, fav, gc, pf, an, to, bg, wl, gl, wo] = await Promise.all([
+      const [f, pr, ov, lk, fl, wt, fav, gc, pf, an, to, bg, wl, gl, wo, ct, rt, cm] = await Promise.all([
         loadKey(STORAGE_KEYS.foods, FOODS), loadKey(STORAGE_KEYS.prefs, DEFAULT_PREFS),
         loadKey(STORAGE_KEYS.overrides, {}), loadKey(STORAGE_KEYS.locks, {}),
         loadKey(STORAGE_KEYS.foodLog, {}), loadKey(STORAGE_KEYS.water, {}),
@@ -3441,6 +4073,8 @@ export default function TropheApp() {
         loadKey(STORAGE_KEYS.timeOverrides, {}), loadKey(STORAGE_KEYS.budget, null),
         loadKey(STORAGE_KEYS.weightLog, { tyler: [], elizabeth: [] }), loadKey(STORAGE_KEYS.gymLog, {}),
         loadKey(STORAGE_KEYS.workoutOverrides, {}),
+        loadKey(STORAGE_KEYS.customTerms, []), loadKey(STORAGE_KEYS.routine, DEFAULT_ROUTINE),
+        loadKey(STORAGE_KEYS.customMeals, []),
       ]);
       setFoods(f.map((food) => ({ ...food, prices: food.prices || [{ store: food.store, price: food.price }], preferredStore: food.preferredStore || food.store })));
       setPrefs(pr); setOverrides(ov); setLocks(lk); setFoodLog(fl); setWater(wt);
@@ -3450,6 +4084,7 @@ export default function TropheApp() {
         woMigrated[iso] = typeof v === "boolean" ? { tyler: v, elizabeth: v } : v;
       });
       setTimeOverrides(to); setBudget(bg); setWeightLog(wl); setGymLog(gl); setWorkoutOverridesState(woMigrated);
+      setCustomTerms(ct); setRoutine({ ...DEFAULT_ROUTINE, ...rt }); setCustomMeals(cm.map((m) => ({ ...m, custom: true })));
       setLoaded(true);
     })();
   }, []);
@@ -3470,9 +4105,13 @@ export default function TropheApp() {
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.weightLog, weightLog); }, [weightLog, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.gymLog, gymLog); }, [gymLog, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.workoutOverrides, workoutOverrides); }, [workoutOverrides, loaded]);
+  useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.customTerms, customTerms); }, [customTerms, loaded]);
+  useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.routine, routine); }, [routine, loaded]);
+  useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.customMeals, customMeals); }, [customMeals, loaded]);
 
   const foodsById = useMemo(() => foodIndex(foods), [foods]);
-  const mealsMap = useMemo(() => mealIndex(MEALS), []);
+  const allMeals = useMemo(() => [...MEALS, ...customMeals], [customMeals]);
+  const mealsMap = useMemo(() => mealIndex(allMeals), [allMeals]);
 
   /* ---------------------------- handlers ---------------------------- */
   const toggleLock = (dayKey, slotKey) => setLocks((s) => {
@@ -3504,6 +4143,13 @@ export default function TropheApp() {
     if (Object.keys(dayEntry).length === 0) delete next[iso]; else next[iso] = dayEntry;
     return next;
   });
+
+  const addCustomTerm = (draft) => setCustomTerms((s) => [...s, { id: uid("term"), custom: true, related: [], ...draft }]);
+  const removeCustomTerm = (id) => setCustomTerms((s) => s.filter((t) => t.id !== id));
+  const updateRoutine = (key, value) => setRoutine((s) => ({ ...s, [key]: value }));
+
+  const addRecipe = (draft) => setCustomMeals((s) => [...s, { id: uid("recipe"), custom: true, favorited: false, ...draft }]);
+  const deleteRecipe = (mealId) => { setCustomMeals((s) => s.filter((m) => m.id !== mealId)); setFavorites((s) => s.filter((id) => id !== mealId)); };
 
   // ---- food log (diary): plan-linked entries (toggleEaten) + free-form ones (logFreeEntry) ----
   const toggleEaten = (dayKey, personId, slotKey, meal) => setFoodLog((s) => {
@@ -3685,7 +4331,7 @@ export default function TropheApp() {
             profile={profiles[person]} overrides={overrides} locks={locks} foodLog={foodLog} toggleEaten={toggleEaten}
             removeLogEntry={removeLogEntry} water={water} addWater={addWater} setWaterTotal={setWaterTotal}
             timeOverrides={timeOverrides} setTimeOverride={setTimeOverride}
-            workoutOverrides={workoutOverrides} setWorkoutOverride={setWorkoutOverride}
+            workoutOverrides={workoutOverrides} setWorkoutOverride={setWorkoutOverride} routine={routine}
             onOpenModal={(m) => m === "addFood" ? (setView("meals"), setAddFoodTrigger((n) => n + 1)) : setModal(m)}
             onNavigate={(v) => v === "progress" ? (setView("profile"), setProfileSub("progress")) : setView(v)} onOpenMeal={openMealDetail} />
         )}
@@ -3697,11 +4343,11 @@ export default function TropheApp() {
             favorites={favorites} toggleFavorite={toggleFavorite} />
         )}
         {view === "meals" && (
-          <MealsScreen meals={MEALS} foods={foods} foodsById={foodsById} prefs={prefs} updatePref={updatePref}
+          <MealsScreen meals={allMeals} foods={foods} foodsById={foodsById} prefs={prefs} updatePref={updatePref}
             updateFoodQty={updateFoodQty} updateFoodPrice={updateFoodPrice} addStorePrice={addStorePrice}
             removeStorePrice={removeStorePrice} setPreferredStore={setPreferredStore} renameStore={renameStore} deleteFood={deleteFood} toggleStaple={toggleStaple}
             favorites={favorites} toggleFavorite={toggleFavorite}
-            onView={(meal) => openMealDetail(meal, null, null)} onAddMealToWeek={onAddMealToWeek} onAddFood={addFood}
+            onView={(meal) => openMealDetail(meal, null, null)} onAddMealToWeek={onAddMealToWeek} onAddFood={addFood} onAddRecipe={addRecipe}
             water={water} addFoodTrigger={addFoodTrigger} inventoryTrigger={inventoryTrigger} />
         )}
         {view === "groceries" && (
@@ -3714,7 +4360,8 @@ export default function TropheApp() {
           <ProfileScreen person={profilePerson} setPerson={setProfilePerson} profiles={profiles} updateProfile={updateProfile}
             toggleWorkoutDay={toggleWorkoutDay} weightLog={weightLog} logWeight={logWeight} removeWeightEntry={removeWeightEntry}
             addRestaurant={addRestaurant} removeRestaurant={removeRestaurant}
-            onOpenPreferences={() => setProfileSub("preferences")} onOpenProgress={() => setProfileSub("progress")} onOpenHelp={() => setProfileSub("help")} />
+            onOpenPreferences={() => setProfileSub("preferences")} onOpenProgress={() => setProfileSub("progress")} onOpenHelp={() => setProfileSub("help")}
+            onOpenLibrary={() => setProfileSub("library")} onOpenRoutine={() => setProfileSub("routine")} />
         )}
         {view === "profile" && profileSub === "preferences" && (
           <PreferencesScreen foods={foods} prefs={prefs} updatePref={updatePref} updateNote={updateNote}
@@ -3725,7 +4372,13 @@ export default function TropheApp() {
             foodLog={foodLog} water={water} gymLog={gymLog} />
         )}
         {view === "profile" && profileSub === "help" && (
-          <HelpScreen onBack={() => { setProfileSub("overview"); setTourStep(null); }} onStartTour={startTour} />
+          <HelpScreen onBack={() => { setProfileSub("overview"); setTourStep(null); }} onStartTour={startTour} onOpenLibrary={() => setProfileSub("library")} />
+        )}
+        {view === "profile" && profileSub === "library" && (
+          <LibraryScreen onBack={() => setProfileSub("overview")} customTerms={customTerms} addCustomTerm={addCustomTerm} removeCustomTerm={removeCustomTerm} />
+        )}
+        {view === "profile" && profileSub === "routine" && (
+          <RoutineScreen onBack={() => setProfileSub("overview")} routine={routine} updateRoutine={updateRoutine} />
         )}
       </div>
 
@@ -3753,13 +4406,13 @@ export default function TropheApp() {
         <RestaurantModal remaining={todaysRemaining} onClose={() => setModal(null)} onLog={(entry) => logFreeEntry(viewDate, person, entry)} />
       )}
       {modal === "logFood" && (
-        <LogFoodModal meals={MEALS} foods={foods} foodsById={foodsById} onClose={() => setModal(null)}
+        <LogFoodModal meals={allMeals} foods={foods} foodsById={foodsById} onClose={() => setModal(null)}
           targetDate={viewDate} onLog={(entry) => logFreeEntry(viewDate, person, entry)} />
       )}
 
       {mealDetail && (
         <MealDetailSheet meal={mealDetail.meal} slot={mealDetail.slot} day={mealDetail.day} foodsById={foodsById}
-          prefs={prefs} favorites={favorites} toggleFavorite={toggleFavorite} onClose={() => setMealDetail(null)} />
+          prefs={prefs} favorites={favorites} toggleFavorite={toggleFavorite} onClose={() => setMealDetail(null)} onDeleteRecipe={deleteRecipe} />
       )}
     </div>
   );
