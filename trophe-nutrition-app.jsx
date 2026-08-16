@@ -798,6 +798,51 @@ function Ring({ value, max, size = 64, stroke = 7, color = "var(--ink)", track =
 }
 
 /** Apple-Activity-style concentric rings: Calories (outer) / Protein (mid) / Carbs (inner). */
+/* --------------------------------- brand mark ---------------------------------
+   Sunrise-over-horizon glyph, recreated as SVG from the supplied artwork
+   (sampled colors: gradient #0AA8FD → #0060FD, horizon in ink). Vector, not
+   a raster embed, so it stays crisp at any size — splash screen, headers,
+   and the browser/web-app icon all reference the same component. */
+function TropheIcon({ size = 32 }) {
+  const gid = useMemo(() => uid("trophe-grad"), []);
+  return (
+    <svg width={size} height={size * 0.7} viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id={gid} x1="100" y1="45" x2="100" y2="134" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#0AA8FD" />
+          <stop offset="100%" stopColor="#0060FD" />
+        </linearGradient>
+      </defs>
+      <g stroke={`url(#${gid})`} strokeWidth="9" strokeLinecap="round">
+        <line x1="144" y1="100" x2="155" y2="100" />
+        <line x1="131.1" y1="68.9" x2="138.9" y2="61.1" />
+        <line x1="100" y1="56" x2="100" y2="45" />
+        <line x1="68.9" y1="68.9" x2="61.1" y2="61.1" />
+        <line x1="56" y1="100" x2="45" y2="100" />
+      </g>
+      <path d="M 66 100 A 34 34 0 0 1 134 100 Z" fill={`url(#${gid})`} />
+      <path d="M 20 116 Q 100 96 180 116" stroke="var(--ink)" strokeWidth="9" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+/** Icon + wordmark + tagline, matching the supplied lockup. */
+function TropheLockup({ iconSize = 44, wordmarkSize = 30, showTagline = true, align = "center" }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", flexDirection: align === "center" ? "column" : "row", gap: align === "center" ? 8 : 12 }}>
+      <TropheIcon size={iconSize} />
+      <div style={{ textAlign: align === "center" ? "center" : "left" }}>
+        <div className="font-display font-bold" style={{ fontSize: wordmarkSize, letterSpacing: "-0.02em", lineHeight: 1 }}>Trophé</div>
+        {showTagline && (
+          <div className="text-[11.5px] font-semibold" style={{ color: "var(--ink-faint)", letterSpacing: ".02em", marginTop: 4 }}>
+            Nourish <span style={{ color: "var(--blue)" }}>·</span> Fuel <span style={{ color: "var(--blue)" }}>·</span> Thrive
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ActivityRings({ rings, size = 168, stroke = 15, gap = 4 }) {
   return (
     <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
@@ -3701,8 +3746,9 @@ function RoutineScreen({ onBack, routine, updateRoutine }) {
 function ProfileScreen({ person, setPerson, profiles, updateProfile, toggleWorkoutDay, weightLog, logWeight, removeWeightEntry, onOpenPreferences, onOpenProgress, onOpenHelp, onOpenLibrary, onOpenRoutine, addRestaurant, removeRestaurant }) {
   return (
     <div>
+      <div className="px-5 pt-5 pb-0"><TropheLockup iconSize={28} wordmarkSize={18} align="left" /></div>
       <ScreenHeader title="Profiles" />
-      <div className="px-5 -mt-4 mb-3 text-[11.5px]" style={{ color: "var(--ink-faint)" }}>Trophé (Greek, "nourishment") — your household's pantry, plan, and progress, all in one place.</div>
+      <div className="px-5 -mt-4 mb-3 text-[11.5px]" style={{ color: "var(--ink-faint)" }}>Your household's pantry, plan, and progress, all in one place.</div>
       <div className="px-5 -mt-1 mb-4"><PersonToggle value={person} onChange={setPerson} includeHousehold /></div>
       {person === "household" ? (
         <div className="px-5 pb-6">
@@ -4061,6 +4107,29 @@ export default function TropheApp() {
   const [addFoodTrigger, setAddFoodTrigger] = useState(0);
   const [inventoryTrigger, setInventoryTrigger] = useState(0);
 
+  // ---- web app icon / tab title (works when hosted standalone; Claude's
+  //      artifact preview runs in an iframe, so browsers may not surface a
+  //      favicon there, but this is here so it's correct wherever this file
+  //      actually ends up running) ----
+  useEffect(() => {
+    document.title = "Trophé";
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 140'>
+      <defs><linearGradient id='g' x1='100' y1='45' x2='100' y2='134' gradientUnits='userSpaceOnUse'>
+        <stop offset='0%' stop-color='#0AA8FD'/><stop offset='100%' stop-color='#0060FD'/>
+      </linearGradient></defs>
+      <g stroke='url(#g)' stroke-width='11' stroke-linecap='round'>
+        <line x1='144' y1='100' x2='155' y2='100'/><line x1='131.1' y1='68.9' x2='138.9' y2='61.1'/>
+        <line x1='100' y1='56' x2='100' y2='45'/><line x1='68.9' y1='68.9' x2='61.1' y2='61.1'/>
+        <line x1='56' y1='100' x2='45' y2='100'/>
+      </g>
+      <path d='M 66 100 A 34 34 0 0 1 134 100 Z' fill='url(#g)'/>
+      <path d='M 14 118 Q 100 94 186 118' stroke='#1C1C1E' stroke-width='11' stroke-linecap='round' fill='none'/>
+    </svg>`;
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) { link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
+    link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  }, []);
+
   // ---- load once ----
   useEffect(() => {
     (async () => {
@@ -4310,9 +4379,8 @@ export default function TropheApp() {
     return (
       <div className="hearth" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <style>{GLOBAL_CSS}</style>
-        <Package size={30} color="var(--mustard)" style={{ marginBottom: 10 }} />
-        <div className="font-display font-bold text-[19px]" style={{ letterSpacing: "-0.01em" }}>Trophé</div>
-        <div className="font-display text-[13px] mt-2" style={{ color: "var(--ink-faint)" }}>Setting the table…</div>
+        <TropheLockup iconSize={56} wordmarkSize={34} />
+        <div className="font-display text-[13px] mt-4" style={{ color: "var(--ink-faint)" }}>Setting the table…</div>
       </div>
     );
   }
