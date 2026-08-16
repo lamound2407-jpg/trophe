@@ -39,6 +39,7 @@ const GLOBAL_CSS = `
   --sage:#34C759; --sage-soft:#E4F8E9;
   --mustard:#FF9500; --mustard-soft:#FFF1DE;
   --plum:#AF52DE; --plum-soft:#F6E9FB;
+  --liz-pink:#C08A93; --liz-pink-soft:#F5E6E8;
   --steel:#32ADE6; --steel-soft:#E3F5FC;
   --ink-panel:#FFFFFF;
   --shadow: 0 1px 1px rgba(0,0,0,.03), 0 2px 10px -4px rgba(0,0,0,.08);
@@ -105,7 +106,7 @@ const uid = (() => { let n = 0; return (p) => `${p}-${++n}`; })();
 /* ------------------------------- PEOPLE --------------------------------- */
 const PEOPLE = {
   tyler: { id: "tyler", name: "Tyler", accent: "var(--blue)", accentSoft: "var(--blue-soft)", initial: "T" },
-  elizabeth: { id: "elizabeth", name: "Elizabeth", accent: "var(--plum)", accentSoft: "var(--plum-soft)", initial: "E" },
+  elizabeth: { id: "elizabeth", name: "Elizabeth", accent: "var(--liz-pink)", accentSoft: "var(--liz-pink-soft)", initial: "E" },
 };
 
 const PREF_LEVELS = ["love", "like", "neutral", "dislike", "never"];
@@ -920,12 +921,17 @@ function BigButton({ icon: Icon, label, onClick, variant = "ghost", sub }) {
 }
 
 function Sheet({ title, onClose, children, footer }) {
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, []);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "flex-end" }}>
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.38)" }} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "flex-end", overscrollBehavior: "contain" }}>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.38)", touchAction: "none" }} />
       <div className="card" style={{
         position: "relative", width: "100%", maxHeight: "88vh", borderRadius: "22px 22px 0 0",
-        display: "flex", flexDirection: "column", animation: "none",
+        display: "flex", flexDirection: "column", animation: "none", overscrollBehavior: "contain",
       }}>
         <div className="flex items-center justify-between px-5 pt-4 pb-3" style={{ borderBottom: "1px solid var(--line-soft)" }}>
           <h2 className="font-display font-bold text-[19px]">{title}</h2>
@@ -933,7 +939,7 @@ function Sheet({ title, onClose, children, footer }) {
             <X size={17} />
           </button>
         </div>
-        <div style={{ overflowY: "auto", padding: "16px 20px 20px" }}>{children}</div>
+        <div style={{ overflowY: "auto", padding: "16px 20px 20px", overscrollBehavior: "contain" }}>{children}</div>
         {footer && <div style={{ borderTop: "1px solid var(--line-soft)", padding: "12px 20px 18px" }}>{footer}</div>}
       </div>
     </div>
@@ -2501,8 +2507,9 @@ const TOUR_STEPS = [
 function TourCaption({ step, total, title, body, onNext, onBack, onExit }) {
   return (
     <div style={{
-      background: "var(--ink)", color: "#fff", padding: "14px 18px calc(14px + env(safe-area-inset-bottom))",
-      boxShadow: "0 -6px 24px rgba(0,0,0,.25)", flexShrink: 0,
+      position: "sticky", top: 0, zIndex: 45,
+      background: "var(--ink)", color: "#fff", padding: "calc(14px + env(safe-area-inset-top)) 18px 14px",
+      boxShadow: "0 6px 24px rgba(0,0,0,.25)", borderRadius: "0 0 18px 18px",
     }}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[10.5px] font-bold tracking-wide" style={{ color: "#F2C572" }}>TOUR · STEP {step + 1} OF {total}</span>
@@ -2516,6 +2523,141 @@ function TourCaption({ step, total, title, body, onNext, onBack, onExit }) {
           {step === total - 1 ? "Finish Tour" : "Next"}
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Nutrition Library ------------------------------
+   A small browsable reference — "shelves" (categories) of terms, each opening
+   into a full entry with cross-references to related terms, so it reads more
+   like flipping through a reference library than one long wall of text. */
+const LIBRARY_SHELVES = [
+  { id: "energy", label: "Energy & Macros", icon: Flame, color: "var(--brick)" },
+  { id: "digestion", label: "Digestion & Micronutrients", icon: Salad, color: "var(--sage)" },
+  { id: "hydration", label: "Hydration", icon: Droplet, color: "var(--steel)" },
+  { id: "quality", label: "Food Quality", icon: Wheat, color: "var(--mustard)" },
+];
+const NUTRITION_TERMS = [
+  { id: "calories", term: "Calories", shelf: "energy",
+    teaser: "The basic unit of energy in food.",
+    full: "A unit of energy. Your body burns calories just existing — breathing, digesting, thinking — plus whatever activity you do on top of that. Eating roughly your target keeps your energy balance steady; consistently eating far above or below it is what drives weight change over time.",
+    related: ["macros", "glycogen"] },
+  { id: "protein", term: "Protein", shelf: "energy",
+    teaser: "Builds and repairs muscle tissue.",
+    full: "Builds and repairs muscle tissue — especially important around training, since workouts create small amounts of muscle damage that protein helps rebuild, stronger than before. It's also the most filling macro, which is why high-protein meals tend to curb snacking later.",
+    related: ["macros", "calories"] },
+  { id: "carbs", term: "Carbohydrates", shelf: "energy",
+    teaser: "Your body's preferred quick-access fuel.",
+    full: "Your body and brain's preferred quick-access fuel. Around workouts specifically, carbs matter more than usual — they refill the glycogen your muscles burn through during training, which is exactly why pre-workout snacks in this app lean carb-heavy.",
+    related: ["glycogen", "netcarbs", "macros"] },
+  { id: "fat", term: "Fat", shelf: "energy",
+    teaser: "Calorie-dense, needed for hormones.",
+    full: "Needed for hormone production and absorbing certain vitamins (A, D, E, K). It's calorie-dense — more than double protein or carbs per gram — which is why pre-workout snacks are deliberately kept lower in fat: fat slows digestion, and you don't want a heavy stomach heading into training.",
+    related: ["macros", "calories"] },
+  { id: "macros", term: "Macros (Macronutrients)", shelf: "energy",
+    teaser: "Protein, carbs, and fat — together.",
+    full: "Shorthand for protein, carbs, and fat together — the three nutrients that provide calories. \"Hitting your macros\" means hitting your individual targets for each, not just your total calorie number, since two meals with the same calories can affect training and recovery very differently depending on the mix.",
+    related: ["protein", "carbs", "fat"] },
+  { id: "glycogen", term: "Glycogen", shelf: "energy",
+    teaser: "Stored carbs, ready for training.",
+    full: "The stored form of carbohydrate your muscles and liver keep on reserve for quick energy. Training burns through it steadily, which is why refilling it with carbs beforehand — and again afterward — keeps energy and recovery on track.",
+    related: ["carbs", "netcarbs"] },
+  { id: "fiber", term: "Fiber", shelf: "digestion",
+    teaser: "The part of carbs you don't digest.",
+    full: "The part of carbohydrates your body can't fully digest. It slows digestion (helping you feel full longer), feeds gut bacteria, and helps regulate blood sugar. Found in vegetables, fruit, beans, and whole grains — notably low in most fast food, which is part of why the fast-food recommendations in this app call out fiber where it's genuinely present.",
+    related: ["netcarbs", "quality"] },
+  { id: "netcarbs", term: "Net Carbs", shelf: "digestion",
+    teaser: "Total carbs minus fiber.",
+    full: "Total carbohydrates minus fiber — the carbs your body actually absorbs and uses for energy. This app tracks total carbs rather than net carbs, since total carbs is what matters most for workout fueling purposes.",
+    related: ["carbs", "fiber"] },
+  { id: "addedsugar", term: "Added Sugar", shelf: "digestion",
+    teaser: "Sugar put in, not naturally there.",
+    full: "Sugar added during processing — separate from the natural sugar already in fruit or dairy. It's counted the same as any other carb calorie-wise, but adds little else nutritionally, which is why whole foods with naturally occurring sugar (like fruit) are generally the better pick over similarly-sweet processed snacks.",
+    related: ["carbs", "quality"] },
+  { id: "hydration", term: "Hydration", shelf: "hydration",
+    teaser: "Water, tracked separately from food.",
+    full: "Water intake, tracked separately from food. Even mild dehydration measurably reduces workout performance and energy, which is part of why the Home hydration bar and the Energy Check-In both ask about it.",
+    related: ["electrolytes"] },
+  { id: "electrolytes", term: "Electrolytes", shelf: "hydration",
+    teaser: "Minerals lost through sweat.",
+    full: "Minerals — mainly sodium, potassium, and magnesium — lost through sweat during training. Plain water replaces fluid but not these; on longer or harder training days, a meal or snack with some sodium alongside water helps more than water alone.",
+    related: ["hydration"] },
+  { id: "quality", term: "Whole Foods vs. Processed", shelf: "quality",
+    teaser: "How much a food's been altered.",
+    full: "Whole foods (a chicken breast, an apple, rice) are close to their natural state; processed foods have been altered — often with added sugar, sodium, or fat — for shelf life or flavor. Processing isn't automatically bad, but leaning toward whole foods for the bulk of your meals generally means more fiber and micronutrients for the same calories.",
+    related: ["fiber", "addedsugar"] },
+];
+
+function NutritionLibrary() {
+  const [shelf, setShelf] = useState("all");
+  const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState(null);
+  const termsById = useMemo(() => { const m = {}; NUTRITION_TERMS.forEach((t) => (m[t.id] = t)); return m; }, []);
+  const filtered = NUTRITION_TERMS.filter((t) =>
+    (shelf === "all" || t.shelf === shelf) && t.term.toLowerCase().includes(q.toLowerCase())
+  );
+  const open = openId ? termsById[openId] : null;
+  const openShelf = open ? LIBRARY_SHELVES.find((s) => s.id === open.shelf) : null;
+
+  return (
+    <div className="card mb-3 overflow-hidden">
+      <div className="px-4 pt-3.5 pb-3" style={{ background: "var(--paper-3)" }}>
+        <div className="flex items-center gap-2.5 mb-2.5">
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--sage)22", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <BookOpen size={16} color="var(--sage)" />
+          </div>
+          <div>
+            <div className="font-display font-bold text-[15.5px]">Nutrition Library</div>
+            <div className="text-[11px]" style={{ color: "var(--ink-faint)" }}>{NUTRITION_TERMS.length} entries across {LIBRARY_SHELVES.length} shelves</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-3 rounded-2xl mb-2.5" style={{ background: "var(--paper-2)" }}>
+          <Search size={13} style={{ color: "var(--ink-faint)" }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the library…" className="input" style={{ border: "none", padding: "8px 0", background: "transparent", fontSize: 13 }} />
+        </div>
+        <div className="scrollx flex gap-1.5 pb-0.5">
+          <button onClick={() => setShelf("all")} className="tap chip" style={{ whiteSpace: "nowrap", ...(shelf === "all" ? { background: "var(--ink)", color: "var(--paper-2)", borderColor: "var(--ink)" } : {}) }}>All Shelves</button>
+          {LIBRARY_SHELVES.map((s) => (
+            <button key={s.id} onClick={() => setShelf(s.id)} className="tap chip" style={{ whiteSpace: "nowrap", ...(shelf === s.id ? { background: s.color, color: "#fff", borderColor: s.color } : {}) }}>{s.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-3">
+        {filtered.length === 0 && <EmptyNote>No entries match that search.</EmptyNote>}
+        <div className="grid grid-cols-2 gap-2">
+          {filtered.map((t) => {
+            const s = LIBRARY_SHELVES.find((sh) => sh.id === t.shelf);
+            const Icon = s.icon;
+            return (
+              <button key={t.id} onClick={() => setOpenId(t.id)} className="tap text-left p-3 rounded-2xl" style={{ background: "var(--paper)", border: `1px solid var(--line-soft)`, borderLeft: `3px solid ${s.color}` }}>
+                <Icon size={13} color={s.color} style={{ marginBottom: 4 }} />
+                <div className="font-display font-bold text-[12.5px] leading-tight">{t.term}</div>
+                <div className="text-[10.5px] mt-0.5" style={{ color: "var(--ink-faint)", lineHeight: 1.3 }}>{t.teaser}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {open && (
+        <Sheet title={open.term} onClose={() => setOpenId(null)}>
+          <span className="chip inline-flex items-center gap-1 mb-3" style={{ background: openShelf.color + "22", borderColor: "transparent", color: openShelf.color }}>
+            <openShelf.icon size={11} /> {openShelf.label}
+          </span>
+          <p className="text-[13.5px]" style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>{open.full}</p>
+          {open.related.length > 0 && (
+            <div className="mt-5">
+              <div className="text-[12px] font-bold mb-2" style={{ color: "var(--ink-faint)" }}>SEE ALSO</div>
+              <div className="flex gap-1.5 flex-wrap">
+                {open.related.map((rid) => (
+                  <button key={rid} onClick={() => setOpenId(rid)} className="tap chip">{termsById[rid]?.term}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </Sheet>
+      )}
     </div>
   );
 }
@@ -2644,26 +2786,7 @@ function HelpScreen({ onBack, onStartTour }) {
           <HelpH>FAVORITE RESTAURANTS</HelpH>
           <HelpP>Add or remove restaurants here — they show up as quick suggestions inside Eating Out Tonight.</HelpP>
         </HelpSection>
-
-        <HelpSection title="Nutrition Glossary" icon={BookOpen} color="var(--sage)">
-          <HelpP>Quick, plain-English definitions for the terms you'll see throughout the app.</HelpP>
-          <HelpH>CALORIES</HelpH>
-          <HelpP>A unit of energy. Your body burns calories just existing (breathing, digesting, thinking) plus whatever activity you do on top of that. Eating roughly your target keeps your energy balance steady; consistently eating far above or below it is what drives weight change over time.</HelpP>
-          <HelpH>PROTEIN</HelpH>
-          <HelpP>Builds and repairs muscle tissue — especially important around training, since workouts create small amounts of muscle damage that protein helps rebuild (stronger than before). It's also the most filling macro, which is why high-protein meals tend to curb snacking later.</HelpP>
-          <HelpH>CARBOHYDRATES</HelpH>
-          <HelpP>Your body and brain's preferred quick-access fuel. Around workouts specifically, carbs matter more than usual — they refill the glycogen (stored energy) your muscles burn through during training, which is exactly why pre-workout snacks in this app lean carb-heavy.</HelpP>
-          <HelpH>FAT</HelpH>
-          <HelpP>Needed for hormone production and absorbing certain vitamins (A, D, E, K). It's calorie-dense (more than double protein or carbs per gram), which is why pre-workout snacks are deliberately kept lower in fat — fat slows digestion, and you don't want a heavy stomach heading into training.</HelpP>
-          <HelpH>FIBER</HelpH>
-          <HelpP>The part of carbohydrates your body can't fully digest. It slows digestion (helping you feel full longer), feeds gut bacteria, and helps regulate blood sugar. Found in vegetables, fruit, beans, and whole grains — notably low in most fast food, which is part of why the fast-food recommendations in this app call out fiber where it's genuinely present.</HelpP>
-          <HelpH>MACROS (MACRONUTRIENTS)</HelpH>
-          <HelpP>Shorthand for protein, carbs, and fat together — the three nutrients that provide calories. "Hitting your macros" means hitting your individual targets for each, not just your total calorie number, since two meals with the same calories can affect training and recovery very differently depending on the macro mix.</HelpP>
-          <HelpH>HYDRATION</HelpH>
-          <HelpP>Water intake, tracked separately from food. Even mild dehydration measurably reduces workout performance and energy, which is part of why the Home hydration bar and the Energy Check-In both ask about it.</HelpP>
-          <HelpH>NET CARBS</HelpH>
-          <HelpP>Total carbohydrates minus fiber — the carbs your body actually absorbs and uses for energy. This app tracks total carbs rather than net carbs, since total carbs is what matters most for workout fueling purposes.</HelpP>
-        </HelpSection>
+        <NutritionLibrary />
 
         <HelpSection title="Healthy Grocery Shopping" icon={ShoppingBag} color="var(--mustard)">
           <HelpP>A few practical habits that make the Groceries tab actually pay off, beyond just following the Need/Have/Buy list.</HelpP>
@@ -3201,7 +3324,7 @@ function fitLabel(cal, remaining) {
   return { text: "Higher-calorie option", color: "var(--brick)" };
 }
 
-function RestaurantModal({ remaining, onClose }) {
+function RestaurantModal({ remaining, onClose, onLog }) {
   const [step, setStep] = useState(1);
   const [restaurant, setRestaurant] = useState("");
   const [hunger, setHunger] = useState(null);
@@ -3244,7 +3367,10 @@ function RestaurantModal({ remaining, onClose }) {
               </button>
             );
           })}
-          <button onClick={onClose} className="tap btn-primary w-full mt-2" style={{ padding: "12px 0" }}>Done</button>
+          <button disabled={!chosen} onClick={() => { onLog({ label: restaurant.trim() ? `${chosen.name} (${restaurant.trim()})` : chosen.name, time: nowDisplayTime(), cal: chosen.cal, p: chosen.p, c: chosen.c, f: chosen.f, fiber: 0 }); onClose(); }}
+            className="tap btn-primary w-full mt-2" style={{ padding: "12px 0", opacity: chosen ? 1 : .4 }}>
+            {chosen ? `Log "${chosen.name}"` : "Pick something above to log it"}
+          </button>
         </div>
       )}
     </Sheet>
@@ -3549,6 +3675,10 @@ export default function TropheApp() {
     <div className="hearth" style={{ minHeight: "100vh", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column" }}>
       <style>{GLOBAL_CSS}</style>
       <div style={{ flex: 1, overflowY: "auto" }}>
+        {tourStep != null && (
+          <TourCaption step={tourStep} total={TOUR_STEPS.length} title={TOUR_STEPS[tourStep].title} body={TOUR_STEPS[tourStep].body}
+            onNext={nextTourStep} onBack={prevTourStep} onExit={exitTour} />
+        )}
         {view === "home" && (
           <HomeScreen person={person} setPerson={setPerson} viewDate={viewDate} setViewDate={setViewDate}
             foodsById={foodsById} mealsMap={mealsMap} prefs={prefs}
@@ -3599,11 +3729,6 @@ export default function TropheApp() {
         )}
       </div>
 
-      {tourStep != null && (
-        <TourCaption step={tourStep} total={TOUR_STEPS.length} title={TOUR_STEPS[tourStep].title} body={TOUR_STEPS[tourStep].body}
-          onNext={nextTourStep} onBack={prevTourStep} onExit={exitTour} />
-      )}
-
       <BottomNav active={view} onChange={(v) => { setView(v); if (v !== "profile") setProfileSub("overview"); if (tourStep != null) setTourStep(null); }} />
 
       {modal === "snack" && (
@@ -3624,7 +3749,9 @@ export default function TropheApp() {
         <GymCheckinModal onClose={() => setModal(null)} onSave={(entry) => saveGymCheckin(person, entry)}
           onShowSnackOptions={() => setModal("snack")} />
       )}
-      {modal === "restaurant" && <RestaurantModal remaining={todaysRemaining} onClose={() => setModal(null)} />}
+      {modal === "restaurant" && (
+        <RestaurantModal remaining={todaysRemaining} onClose={() => setModal(null)} onLog={(entry) => logFreeEntry(viewDate, person, entry)} />
+      )}
       {modal === "logFood" && (
         <LogFoodModal meals={MEALS} foods={foods} foodsById={foodsById} onClose={() => setModal(null)}
           targetDate={viewDate} onLog={(entry) => logFreeEntry(viewDate, person, entry)} />
