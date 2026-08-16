@@ -3,7 +3,7 @@ import { getAuth, signInAnonymously } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDAmQHamSBBShD-lwhVdH3VtGiOVH2lU88",,
+  apiKey: "AIzaSyDAmQHamSBBShD-lwhVdH3VtGiOVH2lU88",
   authDomain: "trophe-4974e.firebaseapp.com",
   projectId: "trophe-4974e",
   storageBucket: "trophe-4974e.firebasestorage.app",
