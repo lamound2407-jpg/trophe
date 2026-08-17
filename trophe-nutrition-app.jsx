@@ -1170,7 +1170,7 @@ function DateNavigator({ viewDate, setViewDate }) {
 }
 
 function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, mealsMap, prefs, profile, overrides, locks, foodLog, toggleEaten,
-  removeLogEntry, water, addWater, setWaterTotal, timeOverrides, setTimeOverride, workoutOverrides, setWorkoutOverride, routine, onOpenModal, onNavigate, onOpenMeal }) {
+  removeLogEntry, updateLogEntry, water, addWater, setWaterTotal, timeOverrides, setTimeOverride, workoutOverrides, setWorkoutOverride, routine, onOpenModal, onNavigate, onOpenMeal }) {
   const weekday = weekdayKeyOf(viewDate);
   const day = WEEK_DAYS.find((d) => d.key === weekday) || WEEK_DAYS[0];
   const isToday = viewDate === todayISO();
@@ -1190,6 +1190,7 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
   const gotWater = water?.[viewDate]?.[person] || 0;
   const [customWater, setCustomWater] = useState("");
   const [showDayFacts, setShowDayFacts] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
   const [editingWater, setEditingWater] = useState(false);
 
   const remaining = {
@@ -1388,13 +1389,13 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
           {entries.length === 0 && <EmptyNote>Nothing logged for this day yet — tap a timeline item or "Log Food" to add something.</EmptyNote>}
           {entries.map((e, i) => (
             <React.Fragment key={e.id}>
-              <div className="flex items-center gap-3 py-2.5">
+              <div className="flex items-center gap-3 py-2.5 tap" onClick={() => setEditingEntry(e)}>
                 <div style={{ width: 54, flexShrink: 0, color: "var(--ink-faint)" }} className="font-mono text-[11px]">{e.time}</div>
                 <div style={{ flex: 1 }}>
                   <div className="text-[13.5px] font-semibold leading-tight">{e.label}{e.servingNote && <span className="font-normal" style={{ color: "var(--ink-faint)" }}> · {e.servingNote}</span>}</div>
                   <div className="font-mono text-[11px] mt-0.5" style={{ color: "var(--ink-soft)" }}>{round(e.cal)} cal · {round(e.p)}g P · {round(e.c)}g C · {round(e.f)}g F</div>
                 </div>
-                <button onClick={() => removeLogEntry(viewDate, person, e.id)} className="tap" style={{ padding: 5 }}>
+                <button onClick={(ev) => { ev.stopPropagation(); removeLogEntry(viewDate, person, e.id); }} className="tap" style={{ padding: 5 }}>
                   <X size={14} color="var(--ink-faint)" />
                 </button>
               </div>
@@ -1426,6 +1427,11 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
           <BigButton icon={TrendingUp} label="See Trends" onClick={() => onNavigate("progress")} />
         </div>
       </div>
+
+      {editingEntry && (
+        <EditLogEntryModal entry={editingEntry} onClose={() => setEditingEntry(null)}
+          onSave={(patch) => { updateLogEntry(viewDate, person, editingEntry.id, patch); setEditingEntry(null); }} />
+      )}
     </div>
   );
 }
@@ -1965,7 +1971,53 @@ function FoodCard({ food, meals, prefs, updatePref, updateFoodQty, updateFoodPri
 
 /* ============================== LOG FOOD (off-plan diary entries) ================================ */
 
-function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
+function EditLogEntryModal({ entry, onClose, onSave }) {
+  const [d, setD] = useState({
+    label: entry.label || "", servingNote: entry.servingNote || "",
+    cal: entry.cal ?? 0, p: entry.p ?? 0, c: entry.c ?? 0, f: entry.f ?? 0, fiber: entry.fiber ?? 0,
+    satFat: entry.satFat ?? 0, transFat: entry.transFat ?? 0, cholesterol: entry.cholesterol ?? 0, sodium: entry.sodium ?? 0, sugar: entry.sugar ?? 0,
+  });
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const set = (k, v) => setD((s) => ({ ...s, [k]: v }));
+  return (
+    <Sheet title="Edit Logged Food" onClose={onClose} footer={
+      <button onClick={() => onSave({
+        label: d.label.trim() || entry.label, servingNote: d.servingNote.trim() || null,
+        cal: Number(d.cal) || 0, p: Number(d.p) || 0, c: Number(d.c) || 0, f: Number(d.f) || 0, fiber: Number(d.fiber) || 0,
+        satFat: Number(d.satFat) || 0, transFat: Number(d.transFat) || 0, cholesterol: Number(d.cholesterol) || 0,
+        sodium: Number(d.sodium) || 0, sugar: Number(d.sugar) || 0,
+      })} className="tap btn-primary w-full" style={{ padding: "13px 0" }}>Save Changes</button>
+    }>
+      <Field label="What did you eat?"><input value={d.label} onChange={(e) => set("label", e.target.value)} className="input" /></Field>
+      <div className="mt-3"><Field label="Serving note (optional)"><input value={d.servingNote} onChange={(e) => set("servingNote", e.target.value)} className="input" placeholder='e.g. "1½ cups"' /></Field></div>
+      <div className="grid grid-cols-4 gap-2 mt-3">
+        <Field label="Cal"><input type="number" value={d.cal} onChange={(e) => set("cal", e.target.value)} className="input" /></Field>
+        <Field label="Protein"><input type="number" value={d.p} onChange={(e) => set("p", e.target.value)} className="input" /></Field>
+        <Field label="Carbs"><input type="number" value={d.c} onChange={(e) => set("c", e.target.value)} className="input" /></Field>
+        <Field label="Fat"><input type="number" value={d.f} onChange={(e) => set("f", e.target.value)} className="input" /></Field>
+      </div>
+      <button onClick={() => setShowAdvanced(!showAdvanced)} className="tap text-[12.5px] font-semibold inline-flex items-center gap-1 mt-3" style={{ color: "var(--blue)" }}>
+        {showAdvanced ? "Hide" : "Edit"} Deeper Nutrition Facts <ChevronRight size={12} style={{ transform: showAdvanced ? "rotate(90deg)" : "none" }} />
+      </button>
+      {showAdvanced && (
+        <div className="p-3 rounded-2xl mt-2" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+          <Field label="Dietary Fiber g"><input type="number" value={d.fiber} onChange={(e) => set("fiber", e.target.value)} className="input" /></Field>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Field label="Saturated Fat g"><input type="number" value={d.satFat} onChange={(e) => set("satFat", e.target.value)} className="input" /></Field>
+            <Field label="Trans Fat g"><input type="number" value={d.transFat} onChange={(e) => set("transFat", e.target.value)} className="input" /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Field label="Cholesterol mg"><input type="number" value={d.cholesterol} onChange={(e) => set("cholesterol", e.target.value)} className="input" /></Field>
+            <Field label="Sodium mg"><input type="number" value={d.sodium} onChange={(e) => set("sodium", e.target.value)} className="input" /></Field>
+          </div>
+          <div className="mt-2"><Field label="Sugars g"><input type="number" value={d.sugar} onChange={(e) => set("sugar", e.target.value)} className="input" /></Field></div>
+        </div>
+      )}
+    </Sheet>
+  );
+}
+
+function LogFoodModal({ meals, foods, foodsById, onClose, onLog, onAddFood, targetDate }) {
   const [tab, setTab] = useState("meals"); // meals | foods | quick
   const [q, setQ] = useState("");
   const [qty, setQty] = useState(1);
@@ -1973,6 +2025,7 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
   const [picked, setPicked] = useState(null); // meal or food
   const [quick, setQuick] = useState({ name: "", cal: "", p: "", c: "", f: "", fiber: "", satFat: "", transFat: "", cholesterol: "", sodium: "", sugar: "" });
   const [quickAdvanced, setQuickAdvanced] = useState(false);
+  const [saveToFoods, setSaveToFoods] = useState(true);
   const isToday = !targetDate || targetDate === todayISO();
 
   const filteredMeals = useMemo(() => meals.filter((m) => m.name.toLowerCase().includes(q.toLowerCase())), [meals, q]);
@@ -2002,6 +2055,14 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
       satFat: Number(quick.satFat) || 0, transFat: Number(quick.transFat) || 0, cholesterol: Number(quick.cholesterol) || 0,
       sodium: Number(quick.sodium) || 0, sugar: Number(quick.sugar) || 0,
     });
+    if (saveToFoods && onAddFood) {
+      onAddFood({
+        name: quick.name, brand: "", category: "Other", servingLabel: "1 serving",
+        cal: quick.cal, p: quick.p, c: quick.c, fat: quick.f, fiber: quick.fiber,
+        satFat: quick.satFat, transFat: quick.transFat, cholesterol: quick.cholesterol, sodium: quick.sodium, sugar: quick.sugar,
+        gf: false, ai: false, price: 0, store: "—", location: "pantry", qty: 0,
+      });
+    }
     onClose();
   };
 
@@ -2098,6 +2159,10 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
               <div className="mt-2"><Field label="Sugars g"><input type="number" value={quick.sugar} onChange={(e) => setQuick((s) => ({ ...s, sugar: e.target.value }))} className="input" /></Field></div>
             </div>
           )}
+          <label className="flex items-center gap-2 text-[13px] mt-1">
+            <input type="checkbox" checked={saveToFoods} onChange={(e) => setSaveToFoods(e.target.checked)} />
+            Also save to My Foods, so I can log this again without retyping it
+          </label>
           <button onClick={submitQuick} className="tap btn-primary w-full" style={{ padding: "12px 0" }}>Log It</button>
         </div>
       )}
@@ -2109,8 +2174,9 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
 
 const RECIPE_CATEGORIES = ["breakfast","lunch","dinner","snack","preworkout","postworkout"];
 
-function IngredientPicker({ foods, ingredients, setIngredients }) {
+function IngredientPicker({ foods, ingredients, setIngredients, onAddFood }) {
   const [q, setQ] = useState("");
+  const [creatingFood, setCreatingFood] = useState(false);
   const matches = q.trim() ? foods.filter((f) => f.name.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : [];
 
   const addIngredient = (food) => {
@@ -2119,6 +2185,13 @@ function IngredientPicker({ foods, ingredients, setIngredients }) {
   };
   const updateIngredient = (i, patch) => setIngredients((s) => s.map((row, idx) => idx === i ? { ...row, ...patch } : row));
   const removeIngredient = (i) => setIngredients((s) => s.filter((_, idx) => idx !== i));
+
+  const createAndAddIngredient = (draft) => {
+    const newId = uid("food");
+    onAddFood({ ...draft, id: newId });
+    addIngredient({ id: newId, servingLabel: draft.servingLabel });
+    setCreatingFood(false);
+  };
 
   return (
     <div>
@@ -2153,11 +2226,23 @@ function IngredientPicker({ foods, ingredients, setIngredients }) {
           <span className="text-[13px] font-semibold">{f.name}</span> <span className="text-[11px]" style={{ color: "var(--ink-faint)" }}>{f.servingLabel}</span>
         </button>
       ))}
+      {q.trim() && onAddFood && (
+        <button onClick={() => setCreatingFood(true)} className="tap w-full text-left p-2.5 rounded-xl mb-1 flex items-center gap-2" style={{ background: "var(--blue-soft)" }}>
+          <Plus size={13} color="var(--blue)" />
+          <span className="text-[13px] font-semibold" style={{ color: "var(--blue)" }}>Add "{q.trim()}" as a new food{matches.length === 0 ? " — not in My Foods yet" : ""}</span>
+        </button>
+      )}
+      {creatingFood && (
+        <AddFoodModal
+          title={`Add "${q.trim()}" to My Foods`} saveLabel="Save & Add as Ingredient"
+          initialName={q.trim()} onClose={() => setCreatingFood(false)} onSave={createAndAddIngredient}
+        />
+      )}
     </div>
   );
 }
 
-function CreateRecipeModal({ foods, onClose, onSave }) {
+function CreateRecipeModal({ foods, onClose, onSave, onAddFood }) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("dinner");
   const [prep, setPrep] = useState(20);
@@ -2198,7 +2283,7 @@ function CreateRecipeModal({ foods, onClose, onSave }) {
 
       <div className="mt-4">
         <span className="text-[11.5px] font-bold block mb-1.5" style={{ color: "var(--ink-faint)" }}>INGREDIENTS</span>
-        <IngredientPicker foods={foods} ingredients={ingredients} setIngredients={setIngredients} />
+        <IngredientPicker foods={foods} ingredients={ingredients} setIngredients={setIngredients} onAddFood={onAddFood} />
       </div>
 
       <div className="mt-4">
@@ -2214,14 +2299,14 @@ function CreateRecipeModal({ foods, onClose, onSave }) {
   );
 }
 
-function AddFoodModal({ onClose, onSave }) {
-  const [f, setF] = useState({ name:"", brand:"", category:"Protein", servingLabel:"", cal:"", p:"", c:"", fat:"", fiber:"", satFat:"", transFat:"", cholesterol:"", sodium:"", sugar:"", gf:false, ai:false, price:"", store:"", location:"pantry", qty:0, pkgServings:1 });
+function AddFoodModal({ onClose, onSave, initialName = "", title = "Add Food", saveLabel = "Save Food" }) {
+  const [f, setF] = useState({ name:initialName, brand:"", category:"Protein", servingLabel:"", cal:"", p:"", c:"", fat:"", fiber:"", satFat:"", transFat:"", cholesterol:"", sodium:"", sugar:"", gf:false, ai:false, price:"", store:"", location:"pantry", qty:0, pkgServings:1 });
   const [showAdvanced, setShowAdvanced] = useState(false);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const canSave = f.name.trim() && f.servingLabel.trim() && f.cal !== "";
   return (
-    <Sheet title="Add Food" onClose={onClose} footer={
-      <button disabled={!canSave} onClick={() => onSave(f)} className="tap btn-primary w-full" style={{ padding: "13px 0", opacity: canSave ? 1 : .4 }}>Save Food</button>
+    <Sheet title={title} onClose={onClose} footer={
+      <button disabled={!canSave} onClick={() => onSave(f)} className="tap btn-primary w-full" style={{ padding: "13px 0", opacity: canSave ? 1 : .4 }}>{saveLabel}</button>
     }>
       <div className="flex flex-col gap-3">
         <Field label="Food name"><input value={f.name} onChange={(e) => set("name", e.target.value)} className="input" placeholder="e.g. Rotisserie Chicken" /></Field>
@@ -2418,7 +2503,7 @@ function MealsScreen({ meals, foods, foodsById, prefs, updatePref, updateFoodQty
           onConfirm={(day, s) => { onAddMealToWeek(day, s, addToWeekMeal.id); setAddToWeekMeal(null); }} />
       )}
       {addFoodOpen && <AddFoodModal onClose={() => setAddFoodOpen(false)} onSave={(f) => { onAddFood(f); setAddFoodOpen(false); }} />}
-      {creatingRecipe && <CreateRecipeModal foods={foods} onClose={() => setCreatingRecipe(false)} onSave={(r) => { onAddRecipe(r); setCreatingRecipe(false); }} />}
+      {creatingRecipe && <CreateRecipeModal foods={foods} onClose={() => setCreatingRecipe(false)} onSave={(r) => { onAddRecipe(r); setCreatingRecipe(false); }} onAddFood={onAddFood} />}
     </div>
   );
 }
@@ -4381,6 +4466,10 @@ export default function TropheApp() {
     const dayEntries = (s[dayKey]?.[personId] || []).filter((e) => e.id !== entryId);
     return { ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: dayEntries } };
   });
+  const _raw_updateLogEntry = (dayKey, personId, entryId, patch) => setFoodLog((s) => {
+    const dayEntries = (s[dayKey]?.[personId] || []).map((e) => e.id === entryId ? { ...e, ...patch } : e);
+    return { ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: dayEntries } };
+  });
 
   const _raw_addWater = (dayKey, personId, oz) => setWater((s) => {
     const next = { ...s, [dayKey]: { ...(s[dayKey] || {}) } };
@@ -4404,7 +4493,7 @@ export default function TropheApp() {
     return row ? { ...f, qty: round(f.qty + row.buyServings, 1) } : f;
   }));
   const _raw_addFood = (draft) => setFoods((s) => [...s, {
-    id: uid("food"), name: draft.name, brand: draft.brand, category: draft.category, servingLabel: draft.servingLabel,
+    id: draft.id || uid("food"), name: draft.name, brand: draft.brand, category: draft.category, servingLabel: draft.servingLabel,
     cal: Number(draft.cal) || 0, p: Number(draft.p) || 0, c: Number(draft.c) || 0, f: Number(draft.fat) || 0,
     fiber: Number(draft.fiber) || 0, satFat: Number(draft.satFat) || 0, transFat: Number(draft.transFat) || 0,
     cholesterol: Number(draft.cholesterol) || 0, sodium: Number(draft.sodium) || 0, sugar: Number(draft.sugar) || 0,
@@ -4508,6 +4597,7 @@ export default function TropheApp() {
   const toggleEaten = mut(_raw_toggleEaten);
   const logFreeEntry = mut(_raw_logFreeEntry);
   const removeLogEntry = mut(_raw_removeLogEntry);
+  const updateLogEntry = mut(_raw_updateLogEntry);
   const addWater = mut(_raw_addWater);
   const setWaterTotal = mut(_raw_setWaterTotal);
   const updatePref = mut(_raw_updatePref);
@@ -4585,7 +4675,7 @@ export default function TropheApp() {
           <HomeScreen person={person} setPerson={setPerson} viewDate={viewDate} setViewDate={setViewDate}
             foodsById={foodsById} mealsMap={mealsMap} prefs={prefs}
             profile={profiles[person]} overrides={overrides} locks={locks} foodLog={foodLog} toggleEaten={toggleEaten}
-            removeLogEntry={removeLogEntry} water={water} addWater={addWater} setWaterTotal={setWaterTotal}
+            removeLogEntry={removeLogEntry} updateLogEntry={updateLogEntry} water={water} addWater={addWater} setWaterTotal={setWaterTotal}
             timeOverrides={timeOverrides} setTimeOverride={setTimeOverride}
             workoutOverrides={workoutOverrides} setWorkoutOverride={setWorkoutOverride} routine={routine}
             onOpenModal={(m) => m === "addFood" ? (setView("meals"), setAddFoodTrigger((n) => n + 1)) : setModal(m)}
@@ -4668,7 +4758,7 @@ export default function TropheApp() {
         <RestaurantModal remaining={todaysRemaining} onClose={() => setModal(null)} onLog={(entry) => logFreeEntry(viewDate, person, entry)} />
       )}
       {modal === "logFood" && (
-        <LogFoodModal meals={allMeals} foods={foods} foodsById={foodsById} onClose={() => setModal(null)}
+        <LogFoodModal meals={allMeals} foods={foods} foodsById={foodsById} onClose={() => setModal(null)} onAddFood={addFood}
           targetDate={viewDate} onLog={(entry) => logFreeEntry(viewDate, person, entry)} />
       )}
 
