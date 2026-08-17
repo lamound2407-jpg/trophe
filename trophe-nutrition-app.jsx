@@ -6,7 +6,7 @@ import {
   Minus, Clock, MapPin, Sparkles, Moon, Sun, TrendingUp, AlertCircle,
   Edit3, ShoppingBag, Package, Snowflake, Refrigerator, ChefHat,
   Zap, Battery, BatteryLow, Coffee, Salad, Beef, Fish, Egg, Wheat,
-  Info, ArrowLeft, Star, Utensils, Calendar, Settings2, BookOpen, Link as LinkIcon
+  Info, ArrowLeft, Star, Utensils, Calendar, Settings2, BookOpen, Link as LinkIcon, Eye
 } from "lucide-react";
 
 /* =========================================================================
@@ -3731,6 +3731,30 @@ function RoutineScreen({ onBack, routine, updateRoutine }) {
   );
 }
 
+function ShareLinkButton() {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", "readonly");
+      await navigator.clipboard.writeText(url.toString());
+    } catch { /* clipboard may be unavailable in some contexts — button still gives visual feedback */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  };
+  return (
+    <button onClick={share} className="tap w-full flex items-center gap-3 p-4 rounded-2xl mb-2.5" style={{ background: "var(--paper-2)", border: "1px solid var(--line-soft)" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--blue-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Eye size={18} color="var(--blue)" />
+      </div>
+      <div className="text-left" style={{ flex: 1 }}>
+        <div className="font-semibold text-[13.5px]">{copied ? "Link copied!" : "Share View-Only Link"}</div>
+        <div className="text-[11.5px]" style={{ color: "var(--ink-faint)" }}>Anyone with this link can look around — nothing they do can change your data</div>
+      </div>
+    </button>
+  );
+}
+
 function ProfileScreen({ person, setPerson, profiles, updateProfile, toggleWorkoutDay, weightLog, logWeight, removeWeightEntry, onOpenPreferences, onOpenProgress, onOpenHelp, onOpenLibrary, onOpenRoutine, addRestaurant, removeRestaurant }) {
   return (
     <div>
@@ -3749,6 +3773,7 @@ function ProfileScreen({ person, setPerson, profiles, updateProfile, toggleWorko
               </div>
             ))}
           </div>
+          <ShareLinkButton />
           <div className="mb-2.5"><BigButton icon={Calendar} label="Plan · Purchase · Cook Schedule" sub="When you plan the week, shop, and cook" onClick={onOpenRoutine} /></div>
           <div className="mb-2.5"><BigButton icon={Heart} label="Food Preferences" sub="Manage both profiles & shared-meal conflicts" onClick={onOpenPreferences} /></div>
           <div className="mb-2.5"><BigButton icon={TrendingUp} label="Progress" sub="Weekly nutrition & gym-energy trends" onClick={onOpenProgress} /></div>
@@ -4090,6 +4115,19 @@ export default function TropheApp() {
   const [routine, setRoutine] = useState(DEFAULT_ROUTINE);
   const [customMeals, setCustomMeals] = useState([]);
 
+  // ---- view-only sharing: a link with ?view=readonly loads normally but
+  //      every data mutation is intercepted and turned into a toast instead.
+  //      Navigation (tabs, viewing a day, opening a meal's detail) still
+  //      works — it's read-only for data, not frozen. ----
+  const readOnly = useMemo(() => {
+    try { return new URLSearchParams(window.location.search).get("view") === "readonly"; }
+    catch { return false; }
+  }, []);
+  const [blockedToast, setBlockedToast] = useState(false);
+  const blockAction = () => { setBlockedToast(true); setTimeout(() => setBlockedToast(false), 2200); };
+  const mut = (fn) => (...args) => { if (readOnly) { blockAction(); return; } return fn(...args); };
+
+
   const [modal, setModal] = useState(null); // 'snack' | 'gym' | 'restaurant' | 'logFood'
   const [mealDetail, setMealDetail] = useState(null); // { meal, slot, day }
   const [addFoodTrigger, setAddFoodTrigger] = useState(0);
@@ -4171,29 +4209,29 @@ export default function TropheApp() {
   const mealsMap = useMemo(() => mealIndex(allMeals), [allMeals]);
 
   /* ---------------------------- handlers ---------------------------- */
-  const toggleLock = (dayKey, slotKey) => setLocks((s) => {
+  const _raw_toggleLock = (dayKey, slotKey) => setLocks((s) => {
     const next = { ...s, [dayKey]: { ...(s[dayKey] || {}) } };
     next[dayKey][slotKey] = !next[dayKey][slotKey];
     return next;
   });
 
-  const applySwap = (dayKey, slotKey, personId, mealId) => setOverrides((s) => {
+  const _raw_applySwap = (dayKey, slotKey, personId, mealId) => setOverrides((s) => {
     const next = { ...s, [dayKey]: { ...(s[dayKey] || {}) } };
     next[dayKey][slotKey] = { ...(next[dayKey][slotKey] || {}), [personId]: mealId };
     return next;
   });
 
-  const onAddMealToWeek = (day, slot, mealId) => {
+  const _raw_onAddMealToWeek = (day, slot, mealId) => {
     applySwap(day.key, slot.key, "tyler", mealId);
     applySwap(day.key, slot.key, "elizabeth", mealId);
     setView("week");
   };
 
-  const setTimeOverride = (dayKey, key, t24) => setTimeOverrides((s) => ({
+  const _raw_setTimeOverride = (dayKey, key, t24) => setTimeOverrides((s) => ({
     ...s, [dayKey]: { ...(s[dayKey] || {}), [key]: t24 },
   }));
 
-  const setWorkoutOverride = (iso, personId, value) => setWorkoutOverridesState((s) => {
+  const _raw_setWorkoutOverride = (iso, personId, value) => setWorkoutOverridesState((s) => {
     const dayEntry = { ...(s[iso] || {}) };
     if (value == null) delete dayEntry[personId]; else dayEntry[personId] = value;
     const next = { ...s };
@@ -4201,15 +4239,15 @@ export default function TropheApp() {
     return next;
   });
 
-  const addCustomTerm = (draft) => setCustomTerms((s) => [...s, { id: uid("term"), custom: true, related: [], ...draft }]);
-  const removeCustomTerm = (id) => setCustomTerms((s) => s.filter((t) => t.id !== id));
-  const updateRoutine = (key, value) => setRoutine((s) => ({ ...s, [key]: value }));
+  const _raw_addCustomTerm = (draft) => setCustomTerms((s) => [...s, { id: uid("term"), custom: true, related: [], ...draft }]);
+  const _raw_removeCustomTerm = (id) => setCustomTerms((s) => s.filter((t) => t.id !== id));
+  const _raw_updateRoutine = (key, value) => setRoutine((s) => ({ ...s, [key]: value }));
 
-  const addRecipe = (draft) => setCustomMeals((s) => [...s, { id: uid("recipe"), custom: true, favorited: false, ...draft }]);
-  const deleteRecipe = (mealId) => { setCustomMeals((s) => s.filter((m) => m.id !== mealId)); setFavorites((s) => s.filter((id) => id !== mealId)); };
+  const _raw_addRecipe = (draft) => setCustomMeals((s) => [...s, { id: uid("recipe"), custom: true, favorited: false, ...draft }]);
+  const _raw_deleteRecipe = (mealId) => { setCustomMeals((s) => s.filter((m) => m.id !== mealId)); setFavorites((s) => s.filter((id) => id !== mealId)); };
 
   // ---- food log (diary): plan-linked entries (toggleEaten) + free-form ones (logFreeEntry) ----
-  const toggleEaten = (dayKey, personId, slotKey, meal) => setFoodLog((s) => {
+  const _raw_toggleEaten = (dayKey, personId, slotKey, meal) => setFoodLog((s) => {
     const dayEntries = s[dayKey]?.[personId] || [];
     const existing = dayEntries.find((e) => e.slotKey === slotKey);
     let nextEntries;
@@ -4221,55 +4259,55 @@ export default function TropheApp() {
     }
     return { ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: nextEntries } };
   });
-  const logFreeEntry = (dayKey, personId, entry) => setFoodLog((s) => {
+  const _raw_logFreeEntry = (dayKey, personId, entry) => setFoodLog((s) => {
     const dayEntries = s[dayKey]?.[personId] || [];
     return { ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: [...dayEntries, { id: uid("log"), slotKey: null, ...entry }] } };
   });
-  const removeLogEntry = (dayKey, personId, entryId) => setFoodLog((s) => {
+  const _raw_removeLogEntry = (dayKey, personId, entryId) => setFoodLog((s) => {
     const dayEntries = (s[dayKey]?.[personId] || []).filter((e) => e.id !== entryId);
     return { ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: dayEntries } };
   });
 
-  const addWater = (dayKey, personId, oz) => setWater((s) => {
+  const _raw_addWater = (dayKey, personId, oz) => setWater((s) => {
     const next = { ...s, [dayKey]: { ...(s[dayKey] || {}) } };
     next[dayKey][personId] = Math.max(0, (next[dayKey][personId] || 0) + oz);
     return next;
   });
-  const setWaterTotal = (dayKey, personId, value) => setWater((s) => ({
+  const _raw_setWaterTotal = (dayKey, personId, value) => setWater((s) => ({
     ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: Math.max(0, value) },
   }));
 
-  const updatePref = (foodId, personId, level) => setPrefs((s) => ({
+  const _raw_updatePref = (foodId, personId, level) => setPrefs((s) => ({
     ...s, [foodId]: { ...(s[foodId] || {}), [personId]: { ...(s[foodId]?.[personId] || {}), level } },
   }));
-  const updateNote = (foodId, personId, note) => setPrefs((s) => ({
+  const _raw_updateNote = (foodId, personId, note) => setPrefs((s) => ({
     ...s, [foodId]: { ...(s[foodId] || {}), [personId]: { ...(s[foodId]?.[personId] || { level: "neutral" }), note } },
   }));
 
-  const updateFoodQty = (foodId, delta) => setFoods((s) => s.map((f) => f.id === foodId ? { ...f, qty: Math.max(0, f.qty + delta) } : f));
-  const restockFoods = (rows) => setFoods((s) => s.map((f) => {
+  const _raw_updateFoodQty = (foodId, delta) => setFoods((s) => s.map((f) => f.id === foodId ? { ...f, qty: Math.max(0, f.qty + delta) } : f));
+  const _raw_restockFoods = (rows) => setFoods((s) => s.map((f) => {
     const row = rows.find((r) => r.foodId === f.id);
     return row ? { ...f, qty: round(f.qty + row.buyServings, 1) } : f;
   }));
-  const addFood = (draft) => setFoods((s) => [...s, {
+  const _raw_addFood = (draft) => setFoods((s) => [...s, {
     id: uid("food"), name: draft.name, brand: draft.brand, category: draft.category, servingLabel: draft.servingLabel,
     cal: Number(draft.cal) || 0, p: Number(draft.p) || 0, c: Number(draft.c) || 0, f: Number(draft.fat) || 0,
     fiber: Number(draft.fiber) || 0, gf: draft.gf, ai: draft.ai, price: Number(draft.price) || 0, store: draft.store || "—",
     prices: [{ store: draft.store || "—", price: Number(draft.price) || 0 }], preferredStore: draft.store || "—",
     location: draft.location, qty: Number(draft.qty) || 0, pkgServings: Number(draft.qty) || 1,
   }]);
-  const updateFoodPrice = (foodId, store, price) => setFoods((s) => s.map((f) => f.id !== foodId ? f : {
+  const _raw_updateFoodPrice = (foodId, store, price) => setFoods((s) => s.map((f) => f.id !== foodId ? f : {
     ...f, prices: f.prices.map((p) => p.store === store ? { ...p, price } : p),
   }));
-  const addStorePrice = (foodId, store, price) => setFoods((s) => s.map((f) => f.id !== foodId ? f : {
+  const _raw_addStorePrice = (foodId, store, price) => setFoods((s) => s.map((f) => f.id !== foodId ? f : {
     ...f, prices: f.prices.some((p) => p.store === store) ? f.prices : [...f.prices, { store, price }],
   }));
-  const removeStorePrice = (foodId, store) => setFoods((s) => s.map((f) => {
+  const _raw_removeStorePrice = (foodId, store) => setFoods((s) => s.map((f) => {
     if (f.id !== foodId || f.prices.length <= 1) return f;
     const prices = f.prices.filter((p) => p.store !== store);
     return { ...f, prices, preferredStore: f.preferredStore === store ? prices[0].store : f.preferredStore };
   }));
-  const renameStore = (foodId, oldName, newName) => setFoods((s) => s.map((f) => {
+  const _raw_renameStore = (foodId, oldName, newName) => setFoods((s) => s.map((f) => {
     if (f.id !== foodId) return f;
     if (f.prices.some((p) => p.store === newName && newName !== oldName)) return f; // avoid duplicate store names
     return {
@@ -4277,42 +4315,42 @@ export default function TropheApp() {
       preferredStore: f.preferredStore === oldName ? newName : f.preferredStore,
     };
   }));
-  const deleteFood = (foodId) => {
+  const _raw_deleteFood = (foodId) => {
     setFoods((s) => s.filter((f) => f.id !== foodId));
     setPrefs((s) => { const next = { ...s }; delete next[foodId]; return next; });
   };
-  const toggleStaple = (foodId) => setFoods((s) => s.map((f) => f.id === foodId ? { ...f, isStaple: !f.isStaple } : f));
-  const setPreferredStore = (foodId, store) => setFoods((s) => s.map((f) => f.id === foodId ? { ...f, preferredStore: store } : f));
+  const _raw_toggleStaple = (foodId) => setFoods((s) => s.map((f) => f.id === foodId ? { ...f, isStaple: !f.isStaple } : f));
+  const _raw_setPreferredStore = (foodId, store) => setFoods((s) => s.map((f) => f.id === foodId ? { ...f, preferredStore: store } : f));
 
-  const toggleFavorite = (mealId) => setFavorites((s) => s.includes(mealId) ? s.filter((x) => x !== mealId) : [...s, mealId]);
-  const toggleGroceryChecked = (foodId) => setGroceryChecked((s) => ({ ...s, [foodId]: !s[foodId] }));
-  const setCheckedMany = (foodIds) => setGroceryChecked(() => {
+  const _raw_toggleFavorite = (mealId) => setFavorites((s) => s.includes(mealId) ? s.filter((x) => x !== mealId) : [...s, mealId]);
+  const _raw_toggleGroceryChecked = (foodId) => setGroceryChecked((s) => ({ ...s, [foodId]: !s[foodId] }));
+  const _raw_setCheckedMany = (foodIds) => setGroceryChecked(() => {
     const next = {}; foodIds.forEach((id) => { next[id] = true; }); return next;
   });
-  const clearPurchased = (rows) => { restockFoods(rows); setGroceryChecked({}); };
-  const updateProfile = (personId, key, value) => setProfiles((s) => ({ ...s, [personId]: { ...s[personId], [key]: value } }));
-  const addRestaurant = (personId, name) => setProfiles((s) => s[personId].favoriteRestaurants.includes(name) ? s : {
+  const _raw_clearPurchased = (rows) => { restockFoods(rows); setGroceryChecked({}); };
+  const _raw_updateProfile = (personId, key, value) => setProfiles((s) => ({ ...s, [personId]: { ...s[personId], [key]: value } }));
+  const _raw_addRestaurant = (personId, name) => setProfiles((s) => s[personId].favoriteRestaurants.includes(name) ? s : {
     ...s, [personId]: { ...s[personId], favoriteRestaurants: [...s[personId].favoriteRestaurants, name] },
   });
-  const removeRestaurant = (personId, name) => setProfiles((s) => ({
+  const _raw_removeRestaurant = (personId, name) => setProfiles((s) => ({
     ...s, [personId]: { ...s[personId], favoriteRestaurants: s[personId].favoriteRestaurants.filter((r) => r !== name) },
   }));
-  const toggleWorkoutDay = (personId, day) => setProfiles((s) => {
+  const _raw_toggleWorkoutDay = (personId, day) => setProfiles((s) => {
     const cur = s[personId].workoutDays;
     const next = cur.includes(day) ? cur.filter((d) => d !== day) : [...cur, day];
     return { ...s, [personId]: { ...s[personId], workoutDays: next } };
   });
-  const logWeight = (personId, weight) => setWeightLog((s) => ({
+  const _raw_logWeight = (personId, weight) => setWeightLog((s) => ({
     ...s, [personId]: [...(s[personId] || []), { id: uid("wt"), date: todayISO(), weight }],
   }));
-  const removeWeightEntry = (personId, id) => setWeightLog((s) => ({
+  const _raw_removeWeightEntry = (personId, id) => setWeightLog((s) => ({
     ...s, [personId]: (s[personId] || []).filter((e) => e.id !== id),
   }));
-  const saveGymCheckin = (personId, entry) => setGymLog((s) => ({
+  const _raw_saveGymCheckin = (personId, entry) => setGymLog((s) => ({
     ...s, [todayISO()]: { ...(s[todayISO()] || {}), [personId]: entry },
   }));
 
-  const generateWeek = (mode) => {
+  const _raw_generateWeek = (mode) => {
     setOverrides((prev) => {
       const next = JSON.parse(JSON.stringify(prev || {}));
       WEEK_DAYS.forEach((day) => {
@@ -4340,6 +4378,46 @@ export default function TropheApp() {
       return next;
     });
   };
+
+  const toggleLock = mut(_raw_toggleLock);
+  const applySwap = mut(_raw_applySwap);
+  const onAddMealToWeek = mut(_raw_onAddMealToWeek);
+  const setTimeOverride = mut(_raw_setTimeOverride);
+  const setWorkoutOverride = mut(_raw_setWorkoutOverride);
+  const addCustomTerm = mut(_raw_addCustomTerm);
+  const removeCustomTerm = mut(_raw_removeCustomTerm);
+  const updateRoutine = mut(_raw_updateRoutine);
+  const addRecipe = mut(_raw_addRecipe);
+  const deleteRecipe = mut(_raw_deleteRecipe);
+  const toggleEaten = mut(_raw_toggleEaten);
+  const logFreeEntry = mut(_raw_logFreeEntry);
+  const removeLogEntry = mut(_raw_removeLogEntry);
+  const addWater = mut(_raw_addWater);
+  const setWaterTotal = mut(_raw_setWaterTotal);
+  const updatePref = mut(_raw_updatePref);
+  const updateNote = mut(_raw_updateNote);
+  const updateFoodQty = mut(_raw_updateFoodQty);
+  const restockFoods = mut(_raw_restockFoods);
+  const addFood = mut(_raw_addFood);
+  const updateFoodPrice = mut(_raw_updateFoodPrice);
+  const addStorePrice = mut(_raw_addStorePrice);
+  const removeStorePrice = mut(_raw_removeStorePrice);
+  const renameStore = mut(_raw_renameStore);
+  const deleteFood = mut(_raw_deleteFood);
+  const toggleStaple = mut(_raw_toggleStaple);
+  const setPreferredStore = mut(_raw_setPreferredStore);
+  const toggleFavorite = mut(_raw_toggleFavorite);
+  const toggleGroceryChecked = mut(_raw_toggleGroceryChecked);
+  const setCheckedMany = mut(_raw_setCheckedMany);
+  const clearPurchased = mut(_raw_clearPurchased);
+  const updateProfile = mut(_raw_updateProfile);
+  const addRestaurant = mut(_raw_addRestaurant);
+  const removeRestaurant = mut(_raw_removeRestaurant);
+  const toggleWorkoutDay = mut(_raw_toggleWorkoutDay);
+  const logWeight = mut(_raw_logWeight);
+  const removeWeightEntry = mut(_raw_removeWeightEntry);
+  const saveGymCheckin = mut(_raw_saveGymCheckin);
+  const generateWeek = mut(_raw_generateWeek);
 
   const openMealDetail = (meal, slot, day) => setMealDetail({ meal, slot, day });
 
@@ -4377,6 +4455,12 @@ export default function TropheApp() {
     <div className="hearth" style={{ minHeight: "100vh", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column" }}>
       <style>{GLOBAL_CSS}</style>
       <div style={{ flex: 1, overflowY: "auto" }}>
+        {readOnly && (
+          <div style={{ position: "sticky", top: 0, zIndex: 44, background: "var(--mustard)", color: "#fff", padding: "9px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <Eye size={13} />
+            <span className="text-[12px] font-semibold">Viewing a shared, view-only link — nothing here can be changed</span>
+          </div>
+        )}
         {tourStep != null && (
           <TourCaption step={tourStep} total={TOUR_STEPS.length} title={TOUR_STEPS[tourStep].title} body={TOUR_STEPS[tourStep].body}
             onNext={nextTourStep} onBack={prevTourStep} onExit={exitTour} />
@@ -4437,6 +4521,12 @@ export default function TropheApp() {
           <RoutineScreen onBack={() => setProfileSub("overview")} routine={routine} updateRoutine={updateRoutine} />
         )}
       </div>
+
+      {blockedToast && (
+        <div style={{ position: "fixed", bottom: 78, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "var(--ink)", color: "#fff", padding: "10px 16px", borderRadius: 980, fontSize: 12.5, fontWeight: 600, boxShadow: "0 6px 20px rgba(0,0,0,.25)", whiteSpace: "nowrap" }}>
+          View-only link — this can't be changed here
+        </div>
+      )}
 
       <BottomNav active={view} onChange={(v) => { setView(v); if (v !== "profile") setProfileSub("overview"); if (tourStep != null) setTourStep(null); }} />
 
