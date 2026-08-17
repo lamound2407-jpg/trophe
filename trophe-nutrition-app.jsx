@@ -749,6 +749,40 @@ function buildGroceryList(overrides, foodsById, mealsMap) {
 }
 
 const GROCERY_CATEGORY_ORDER = ["Produce","Protein","Dairy","Carbohydrates","Frozen","Snacks","Condiments","Drinks","Other"];
+function currentWeekLabel() {
+  const weekStart = startOfWeek(todayISO());
+  return `${formatDateShort(weekStart)} – ${formatDateShort(addDays(weekStart, 6))}`;
+}
+
+function createGrocerySnapshot(rows, mode = "generated") {
+  const weekStart = startOfWeek(todayISO());
+  const items = rows.map((r) => ({
+    foodId: r.foodId,
+    name: r.food.name,
+    category: groceryCategoryOf(r.food),
+    store: r.food.preferredStore || r.food.store || "Other",
+    needServings: r.needServings,
+    haveServings: r.haveServings,
+    buyServings: r.buyServings,
+    buyPackages: r.buyPackages,
+    estCost: r.estCost,
+    people: [...r.people],
+    usedFor: [...r.usedFor],
+  }));
+
+  return {
+    id: `grocery-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    generatedAt: new Date().toISOString(),
+    date: todayISO(),
+    weekStart,
+    weekLabel: `${formatDateShort(weekStart)} – ${formatDateShort(addDays(weekStart, 6))}`,
+    mode,
+    itemCount: items.length,
+    totalCost: round(items.reduce((sum, item) => sum + item.estCost, 0), 2),
+    items,
+  };
+}
+
 function groceryCategoryOf(food) {
   if (food.location === "freezer" && food.category === "Protein") return "Frozen";
   if (food.category === "Vegetable" || food.category === "Fruit") return "Produce";
@@ -1170,7 +1204,7 @@ function DateNavigator({ viewDate, setViewDate }) {
 }
 
 function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, mealsMap, prefs, profile, overrides, locks, foodLog, toggleEaten,
-  removeLogEntry, updateLogEntry, water, addWater, setWaterTotal, timeOverrides, setTimeOverride, workoutOverrides, setWorkoutOverride, routine, onOpenModal, onNavigate, onOpenMeal }) {
+  removeLogEntry, updateLogEntry, water, addWater, setWaterTotal, caloriesBurned, addCaloriesBurned, setCaloriesBurnedTotal, timeOverrides, setTimeOverride, workoutOverrides, setWorkoutOverride, routine, onOpenModal, onNavigate, onOpenMeal }) {
   const weekday = weekdayKeyOf(viewDate);
   const day = WEEK_DAYS.find((d) => d.key === weekday) || WEEK_DAYS[0];
   const isToday = viewDate === todayISO();
@@ -1188,13 +1222,16 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
 
   const targetWater = profile.waterTarget;
   const gotWater = water?.[viewDate]?.[person] || 0;
+  const burnedToday = caloriesBurned?.[viewDate]?.[person] || 0;
   const [customWater, setCustomWater] = useState("");
+  const [customBurned, setCustomBurned] = useState("");
+  const [editingBurned, setEditingBurned] = useState(false);
   const [showDayFacts, setShowDayFacts] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [editingWater, setEditingWater] = useState(false);
 
   const remaining = {
-    cal: Math.max(0, profile.calorieTarget - eatenTotals.cal),
+    cal: Math.max(0, profile.calorieTarget + burnedToday - eatenTotals.cal),
     p: Math.max(0, profile.proteinTarget - eatenTotals.p),
     c: Math.max(0, profile.carbTarget - eatenTotals.c),
     f: Math.max(0, profile.fatTarget - eatenTotals.f),
@@ -1301,8 +1338,38 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
             </div>
           </div>
           <div className="divider mt-4 pt-3 flex justify-between text-[12.5px]">
-            <span style={{ color: "var(--ink-faint)" }}>Remaining {isToday ? "today" : "that day"}</span>
+            <span style={{ color: "var(--ink-faint)" }}>Remaining {isToday ? "today" : "that day"}{burnedToday > 0 ? " (incl. activity)" : ""}</span>
             <span className="font-mono font-semibold">{round(remaining.cal)} cal · {round(remaining.p)}g P · {round(remaining.c)}g C · {round(remaining.f)}g F</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Calories burned — manual entry (e.g. from an Oura ring or other tracker) */}
+      <div className="px-5 mt-4">
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[13px] font-semibold flex items-center gap-1.5" style={{ color: "var(--ink-soft)" }}><Flame size={14} color="var(--brick)" /> Calories Burned</span>
+            {editingBurned ? (
+              <input type="number" autoFocus defaultValue={burnedToday}
+                onBlur={(e) => { setCaloriesBurnedTotal(viewDate, person, Math.max(0, Number(e.target.value) || 0)); setEditingBurned(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+                className="font-mono text-[13px] text-right" style={{ width: 64, border: "1px solid var(--line)", borderRadius: 6, padding: "1px 4px" }} />
+            ) : (
+              <button onClick={() => setEditingBurned(true)} className="tap font-mono text-[14px] font-bold">{burnedToday} <span className="font-normal text-[11px]" style={{ color: "var(--ink-faint)" }}>cal</span></button>
+            )}
+          </div>
+          <div className="text-[11px] mb-2.5" style={{ color: "var(--ink-faint)" }}>From your Oura ring or any other tracker — added back to today's calorie budget above.</div>
+          <div className="flex gap-1.5 items-center">
+            {[100, 250, 500].map((c) => (
+              <button key={c} onClick={() => addCaloriesBurned(viewDate, person, c)} className="tap chip">+{c}</button>
+            ))}
+            <input type="number" value={customBurned} onChange={(e) => setCustomBurned(e.target.value)} placeholder="cal"
+              className="font-mono text-[11px]" style={{ width: 50, border: "1px solid var(--line)", borderRadius: 8, padding: "3px 5px" }} />
+            <button onClick={() => { const v = Number(customBurned); if (v) { addCaloriesBurned(viewDate, person, v); setCustomBurned(""); } }}
+              className="tap chip" style={{ padding: "5px 8px" }}><Plus size={11} /></button>
+            {burnedToday > 0 && (
+              <button onClick={() => setCaloriesBurnedTotal(viewDate, person, 0)} className="tap text-[11px] font-semibold" style={{ color: "var(--brick)", marginLeft: "auto" }}>Clear</button>
+            )}
           </div>
         </div>
       </div>
@@ -1618,7 +1685,7 @@ function WeekScreen({ person, setPerson, mealsMap, foodsById, prefs, overrides, 
           }>
           <div className="text-[13px] mb-4" style={{ color: "var(--ink-soft)" }}>
             This rebuilds every <b>unlocked</b> meal in the weekly plan using your calorie target, workout schedule, foods at home,
-            and the preference mode below. Locked meals are kept exactly as-is. Because the plan is a repeating template, this affects every week, not just {weekLabel}.
+            and the preference mode below. Locked meals are kept exactly as-is. A grocery list for the newly generated plan is also created automatically and saved to Grocery History. Because the plan is a repeating template, this affects every week, not just {weekLabel}.
           </div>
           <div className="text-[12px] font-bold mb-2" style={{ color: "var(--ink-faint)" }}>RESPECT PREFERENCES</div>
           <div className="flex flex-col gap-2">
@@ -2512,13 +2579,16 @@ function MealsScreen({ meals, foods, foodsById, prefs, updatePref, updateFoodQty
 
 const GROCERY_PRIORITY = { Protein: 1, Frozen: 1, Produce: 2, Dairy: 3, Carbohydrates: 4, Drinks: 5, Snacks: 6, Condiments: 7, Other: 8 };
 
-function GroceriesScreen({ overrides, foodsById, mealsMap, checked, toggleChecked, setCheckedMany, onClearPurchased, budget, setBudget, onNavigateInventory }) {
+function GroceriesScreen({ overrides, foodsById, mealsMap, checked, toggleChecked, setCheckedMany, onClearPurchased, budget, setBudget, onNavigateInventory, groceryHistory }) {
   const [sortBy, setSortBy] = useState("category"); // category | store | person
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState(null);
   const [budgetDraft, setBudgetDraft] = useState(budget || "");
   const [shareState, setShareState] = useState("idle");
   const [budgetNote, setBudgetNote] = useState(null);
+  const weekLabel = currentWeekLabel();
 
   const list = useMemo(() => buildGroceryList(overrides, foodsById, mealsMap), [overrides, foodsById, mealsMap]);
   const toBuy = list.filter((r) => r.buyServings > 0);
@@ -2563,7 +2633,7 @@ function GroceriesScreen({ overrides, foodsById, mealsMap, checked, toggleChecke
   };
 
   const shareList = async () => {
-    const text = `Grocery list (${WEEK_LABEL})\n` + myList.map((r) => `• ${r.food.name} — ${r.buyServings} (${r.buyPackages} pkg) — $${r.estCost}`).join("\n")
+    const text = `Grocery list (${weekLabel})\n` + myList.map((r) => `• ${r.food.name} — ${r.buyServings} (${r.buyPackages} pkg) — $${r.estCost}`).join("\n")
       + `\nTotal: $${myListCost}`;
     try { await navigator.clipboard.writeText(text); setShareState("copied"); setTimeout(() => setShareState("idle"), 1800); }
     catch (e) { setShareState("idle"); }
@@ -2571,7 +2641,7 @@ function GroceriesScreen({ overrides, foodsById, mealsMap, checked, toggleChecke
 
   return (
     <div>
-      <ScreenHeader title="Weekly Grocery Order" eyebrow={WEEK_LABEL} />
+      <ScreenHeader title="Weekly Grocery Order" eyebrow={weekLabel} />
       <div className="px-5 -mt-1">
         <div className="card p-4 mb-4">
           <div className="flex justify-between text-[13px]">
@@ -2582,6 +2652,10 @@ function GroceriesScreen({ overrides, foodsById, mealsMap, checked, toggleChecke
           </div>
           <div className="flex justify-between text-[13px] mt-1.5">
             <span style={{ color: "var(--ink-faint)" }}>Estimated cost (all)</span><span className="font-mono font-semibold">${totalCost}</span>
+          </div>
+          <div className="flex justify-between text-[13px] mt-1.5">
+            <button onClick={() => { setSelectedHistory(null); setShowHistory(true); }} className="tap" style={{ color: "var(--blue)" }}>Saved grocery lists</button>
+            <span className="font-mono font-semibold">{groceryHistory.length}</span>
           </div>
           <div className="flex justify-between text-[13px] mt-1.5">
             <button onClick={() => setShowBudget(true)} className="tap" style={{ color: "var(--blue)" }}>Budget</button>
@@ -2625,6 +2699,7 @@ function GroceriesScreen({ overrides, foodsById, mealsMap, checked, toggleChecke
           </button>
         </div>
 
+        <div className="mb-3"><BigButton icon={BookOpen} label="Grocery History" sub={`${groceryHistory.length} saved list${groceryHistory.length === 1 ? "" : "s"} from generated weeks`} onClick={() => { setSelectedHistory(null); setShowHistory(true); }} /></div>
         <div className="mb-4"><BigButton icon={Package} label="View Grocery Inventory" sub="Everything on hand, week after week" onClick={onNavigateInventory} /></div>
 
         <div className="scrollx flex gap-1.5 mb-4 pb-1">
@@ -2641,6 +2716,84 @@ function GroceriesScreen({ overrides, foodsById, mealsMap, checked, toggleChecke
         ))}
         {toBuy.length === 0 && <EmptyNote>Everything you need is already at home. Nice.</EmptyNote>}
       </div>
+
+      {showHistory && (
+        <Sheet
+          title={selectedHistory ? selectedHistory.weekLabel : "Grocery History"}
+          onClose={() => { setShowHistory(false); setSelectedHistory(null); }}
+        >
+          {selectedHistory ? (
+            <div>
+              <button onClick={() => setSelectedHistory(null)} className="tap inline-flex items-center gap-1 text-[12.5px] font-semibold mb-4" style={{ color: "var(--blue)" }}>
+                <ArrowLeft size={14} /> All saved lists
+              </button>
+
+              <div className="card p-3.5 mb-4">
+                <div className="flex justify-between text-[12.5px]">
+                  <span style={{ color: "var(--ink-faint)" }}>Generated</span>
+                  <span className="font-semibold">{new Date(selectedHistory.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                </div>
+                <div className="flex justify-between text-[12.5px] mt-1.5">
+                  <span style={{ color: "var(--ink-faint)" }}>Items</span>
+                  <span className="font-mono font-semibold">{selectedHistory.itemCount ?? selectedHistory.items?.length ?? 0}</span>
+                </div>
+                <div className="flex justify-between text-[12.5px] mt-1.5">
+                  <span style={{ color: "var(--ink-faint)" }}>Estimated total</span>
+                  <span className="font-mono font-semibold">${selectedHistory.totalCost ?? 0}</span>
+                </div>
+                <div className="flex justify-between text-[12.5px] mt-1.5">
+                  <span style={{ color: "var(--ink-faint)" }}>Generator mode</span>
+                  <span className="font-semibold" style={{ textTransform: "capitalize" }}>{selectedHistory.mode || "generated"}</span>
+                </div>
+              </div>
+
+              {(selectedHistory.items || []).map((item) => (
+                <div key={`${selectedHistory.id}-${item.foodId}`} className="card p-3.5 mb-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-semibold text-[14px]">{item.name}</div>
+                    <div className="font-mono text-[12.5px] font-semibold">${item.estCost}</div>
+                  </div>
+                  <div className="font-mono text-[11px] mt-1" style={{ color: "var(--ink-faint)" }}>
+                    Need {item.needServings} · Had {item.haveServings} · <b style={{ color: "var(--ink)" }}>Buy {item.buyServings} ({item.buyPackages} pkg)</b>
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5 gap-2">
+                    <span className="chip">{item.category || "Other"}</span>
+                    <span className="text-[11px]" style={{ color: "var(--ink-faint)" }}>{item.store || "Other"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <div className="text-[13px] mb-4" style={{ color: "var(--ink-soft)" }}>
+                Every time you use Generate My Week, Trophé saves the grocery needs for that exact generated plan here. These snapshots do not change later when pantry quantities, prices, or the current week change.
+              </div>
+              {groceryHistory.length === 0 ? (
+                <EmptyNote>No grocery history yet. Generate a week and its grocery list will be saved here automatically.</EmptyNote>
+              ) : groceryHistory.map((entry) => (
+                <button key={entry.id} onClick={() => setSelectedHistory(entry)} className="tap card p-3.5 mb-2 w-full text-left">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-display font-bold text-[14.5px]">{entry.weekLabel || formatDateShort(entry.date)}</div>
+                      <div className="text-[11px] mt-0.5" style={{ color: "var(--ink-faint)" }}>
+                        {new Date(entry.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} color="var(--ink-faint)" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 text-[11.5px]" style={{ color: "var(--ink-soft)" }}>
+                    <span>{entry.itemCount ?? entry.items?.length ?? 0} items</span>
+                    <span>·</span>
+                    <span className="font-mono">${entry.totalCost ?? 0}</span>
+                    <span>·</span>
+                    <span style={{ textTransform: "capitalize" }}>{entry.mode || "generated"}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Sheet>
+      )}
 
       {showBudget && (
         <Sheet title="Grocery Budget" onClose={() => setShowBudget(false)}>
@@ -2839,20 +2992,22 @@ const PROGRESS_METRICS = [
   { id:"f", label:"Fat", color:"var(--plum)", max:70, group:"nutrition" },
   { id:"fiber", label:"Fiber", color:"var(--steel)", max:30, group:"nutrition" },
   { id:"water", label:"Water", color:"var(--steel)", max:100, group:"nutrition" },
+  { id:"burned", label:"Calories Burned", color:"var(--mustard)", max:800, group:"nutrition" },
   { id:"energy", label:"Energy", color:"var(--brick)", max:10, group:"gym" },
   { id:"strength", label:"Strength (workout days)", color:"var(--sage)", max:10, group:"gym" },
   { id:"endurance", label:"Endurance (workout days)", color:"var(--mustard)", max:10, group:"gym" },
 ];
 
-function dailyTotals(foodLog, water, gymLog, iso, person) {
+function dailyTotals(foodLog, water, gymLog, iso, person, caloriesBurned) {
   const entries = foodLog?.[iso]?.[person] || [];
   const t = entries.reduce((a, e) => ({ cal: a.cal + e.cal, p: a.p + e.p, c: a.c + e.c, f: a.f + e.f, fiber: a.fiber + (e.fiber || 0) }),
     { cal: 0, p: 0, c: 0, f: 0, fiber: 0 });
   const gym = gymLog?.[iso]?.[person];
   const w = water?.[iso]?.[person] || 0;
+  const burned = caloriesBurned?.[iso]?.[person] || 0;
   return {
-    ...t, water: w, energy: gym?.energy ?? null, strength: gym?.strength ?? null, endurance: gym?.endurance ?? null,
-    hasData: entries.length > 0 || w > 0 || !!gym,
+    ...t, water: w, burned, energy: gym?.energy ?? null, strength: gym?.strength ?? null, endurance: gym?.endurance ?? null,
+    hasData: entries.length > 0 || w > 0 || burned > 0 || !!gym,
   };
 }
 function avg(nums) { const v = nums.filter((n) => n != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
@@ -3498,6 +3653,9 @@ function HelpScreen({ onBack, onStartTour, onOpenLibrary }) {
           <HelpH>MY LIST</HelpH>
           <HelpP>Tapping any item below adds it to the "My List" card at the top, so you always have a clear, visible summary of what you've actually decided to buy, separate from the full need-list you're still browsing.</HelpP>
 
+          <HelpH>GROCERY HISTORY</HelpH>
+          <HelpP>Every time you use Generate My Week, Trophé saves a dated snapshot of the grocery needs created by that exact generated plan. Old snapshots stay unchanged even if your pantry inventory, prices, or current weekly plan change later, so you can always go back and see what was on a previous grocery list.</HelpP>
+
           <HelpH>CLEAR PURCHASED</HelpH>
           <HelpP>When you've actually bought everything in My List, this button (after a confirmation) does two things at once: it adds the purchased quantities into your My Foods inventory automatically, and clears your list. That's the loop that keeps your pantry accurate — you never have to manually re-enter what you just bought.</HelpP>
 
@@ -3564,7 +3722,7 @@ function HelpScreen({ onBack, onStartTour, onOpenLibrary }) {
   );
 }
 
-function ProgressScreen({ onBack, person, setPerson, foodLog, water, gymLog }) {
+function ProgressScreen({ onBack, person, setPerson, foodLog, water, gymLog, caloriesBurned }) {
   const [granularity, setGranularity] = useState("week"); // week | month | year
   const [anchor, setAnchor] = useState(todayISO());
   const [metric, setMetric] = useState("cal");
@@ -3575,7 +3733,7 @@ function ProgressScreen({ onBack, person, setPerson, foodLog, water, gymLog }) {
       const ws = startOfWeek(anchor);
       return WEEK_DAYS.map((d, i) => {
         const iso = addDays(ws, i);
-        const t = dailyTotals(foodLog, water, gymLog, iso, person);
+        const t = dailyTotals(foodLog, water, gymLog, iso, person, caloriesBurned);
         return { label: d.short.slice(0, 3), value: t[metric], hasData: t.hasData };
       });
     }
@@ -3587,7 +3745,7 @@ function ProgressScreen({ onBack, person, setPerson, foodLog, water, gymLog }) {
         const vals = [];
         for (let d = s; d <= e; d++) {
           const iso = `${ms.slice(0,7)}-${pad2(d)}`;
-          const t = dailyTotals(foodLog, water, gymLog, iso, person);
+          const t = dailyTotals(foodLog, water, gymLog, iso, person, caloriesBurned);
           if (t.hasData) vals.push(t[metric]);
         }
         return { label: `${s}–${e}`, value: avg(vals), hasData: vals.length > 0 };
@@ -3601,7 +3759,7 @@ function ProgressScreen({ onBack, person, setPerson, foodLog, water, gymLog }) {
       const vals = [];
       for (let d = 1; d <= dim; d++) {
         const iso = `${y}-${pad2(mi + 1)}-${pad2(d)}`;
-        const t = dailyTotals(foodLog, water, gymLog, iso, person);
+        const t = dailyTotals(foodLog, water, gymLog, iso, person, caloriesBurned);
         if (t.hasData) vals.push(t[metric]);
       }
       return { label: monthIso ? parseISO(monthIso).toLocaleDateString("en-US", { month: "short" }) : "", value: avg(vals), hasData: vals.length > 0 };
@@ -4268,10 +4426,10 @@ function RestaurantModal({ remaining, onClose, onLog }) {
 const STORAGE_KEYS = {
   foods: "hearth:foods", prefs: "hearth:prefs", overrides: "hearth:week-overrides", locks: "hearth:week-locks",
   foodLog: "hearth:food-log", water: "hearth:water", favorites: "hearth:favorites",
-  groceryChecked: "hearth:grocery-checked", profiles: "hearth:profiles", allowNever: "hearth:allow-never",
+  groceryChecked: "hearth:grocery-checked", groceryHistory: "hearth:grocery-history", profiles: "hearth:profiles", allowNever: "hearth:allow-never",
   timeOverrides: "hearth:time-overrides", budget: "hearth:grocery-budget", weightLog: "hearth:weight-log", gymLog: "hearth:gym-log",
   workoutOverrides: "hearth:workout-overrides",
-  customTerms: "hearth:custom-terms", routine: "hearth:routine", customMeals: "hearth:custom-meals",
+  customTerms: "hearth:custom-terms", routine: "hearth:routine", customMeals: "hearth:custom-meals", caloriesBurned: "hearth:calories-burned",
 };
 
 async function loadKey(key, fallback) {
@@ -4301,8 +4459,10 @@ export default function TropheApp() {
   const [locks, setLocks] = useState({});
   const [foodLog, setFoodLog] = useState({});
   const [water, setWater] = useState({});
+  const [caloriesBurned, setCaloriesBurned] = useState({});
   const [favorites, setFavorites] = useState([]);
   const [groceryChecked, setGroceryChecked] = useState({});
+  const [groceryHistory, setGroceryHistory] = useState([]);
   const [profiles, setProfiles] = useState(DEFAULT_PROFILES);
   const [allowNever, setAllowNever] = useState(false);
   const [timeOverrides, setTimeOverrides] = useState({});
@@ -4358,27 +4518,28 @@ export default function TropheApp() {
   // ---- load once ----
   useEffect(() => {
     (async () => {
-      const [f, pr, ov, lk, fl, wt, fav, gc, pf, an, to, bg, wl, gl, wo, ct, rt, cm] = await Promise.all([
+      const [f, pr, ov, lk, fl, wt, fav, gc, gh, pf, an, to, bg, wl, gl, wo, ct, rt, cm, cb] = await Promise.all([
         loadKey(STORAGE_KEYS.foods, FOODS), loadKey(STORAGE_KEYS.prefs, DEFAULT_PREFS),
         loadKey(STORAGE_KEYS.overrides, {}), loadKey(STORAGE_KEYS.locks, {}),
         loadKey(STORAGE_KEYS.foodLog, {}), loadKey(STORAGE_KEYS.water, {}),
-        loadKey(STORAGE_KEYS.favorites, []), loadKey(STORAGE_KEYS.groceryChecked, {}),
+        loadKey(STORAGE_KEYS.favorites, []), loadKey(STORAGE_KEYS.groceryChecked, {}), loadKey(STORAGE_KEYS.groceryHistory, []),
         loadKey(STORAGE_KEYS.profiles, DEFAULT_PROFILES), loadKey(STORAGE_KEYS.allowNever, false),
         loadKey(STORAGE_KEYS.timeOverrides, {}), loadKey(STORAGE_KEYS.budget, null),
         loadKey(STORAGE_KEYS.weightLog, { tyler: [], elizabeth: [] }), loadKey(STORAGE_KEYS.gymLog, {}),
         loadKey(STORAGE_KEYS.workoutOverrides, {}),
         loadKey(STORAGE_KEYS.customTerms, []), loadKey(STORAGE_KEYS.routine, DEFAULT_ROUTINE),
         loadKey(STORAGE_KEYS.customMeals, []),
+        loadKey(STORAGE_KEYS.caloriesBurned, {}),
       ]);
       setFoods(f.map((food) => ({ ...food, prices: food.prices || [{ store: food.store, price: food.price }], preferredStore: food.preferredStore || food.store })));
       setPrefs(pr); setOverrides(ov); setLocks(lk); setFoodLog(fl); setWater(wt);
-      setFavorites(fav); setGroceryChecked(gc); setProfiles(pf); setAllowNever(an);
+      setFavorites(fav); setGroceryChecked(gc); setGroceryHistory(Array.isArray(gh) ? gh : []); setProfiles(pf); setAllowNever(an);
       const woMigrated = {};
       Object.entries(wo || {}).forEach(([iso, v]) => {
         woMigrated[iso] = typeof v === "boolean" ? { tyler: v, elizabeth: v } : v;
       });
       setTimeOverrides(to); setBudget(bg); setWeightLog(wl); setGymLog(gl); setWorkoutOverridesState(woMigrated);
-      setCustomTerms(ct); setRoutine({ ...DEFAULT_ROUTINE, ...rt }); setCustomMeals(cm.map((m) => ({ ...m, custom: true })));
+      setCustomTerms(ct); setRoutine({ ...DEFAULT_ROUTINE, ...rt }); setCustomMeals(cm.map((m) => ({ ...m, custom: true }))); setCaloriesBurned(cb);
       setLoaded(true);
     })();
   }, []);
@@ -4392,6 +4553,7 @@ export default function TropheApp() {
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.water, water); }, [water, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.favorites, favorites); }, [favorites, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.groceryChecked, groceryChecked); }, [groceryChecked, loaded]);
+  useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.groceryHistory, groceryHistory); }, [groceryHistory, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.profiles, profiles); }, [profiles, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.allowNever, allowNever); }, [allowNever, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.timeOverrides, timeOverrides); }, [timeOverrides, loaded]);
@@ -4402,6 +4564,7 @@ export default function TropheApp() {
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.customTerms, customTerms); }, [customTerms, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.routine, routine); }, [routine, loaded]);
   useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.customMeals, customMeals); }, [customMeals, loaded]);
+  useEffect(() => { if (loaded) saveKey(STORAGE_KEYS.caloriesBurned, caloriesBurned); }, [caloriesBurned, loaded]);
 
   const foodsById = useMemo(() => foodIndex(foods), [foods]);
   const allMeals = useMemo(() => [...MEALS, ...customMeals], [customMeals]);
@@ -4477,6 +4640,14 @@ export default function TropheApp() {
     return next;
   });
   const _raw_setWaterTotal = (dayKey, personId, value) => setWater((s) => ({
+    ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: Math.max(0, value) },
+  }));
+  const _raw_addCaloriesBurned = (dayKey, personId, cal) => setCaloriesBurned((s) => {
+    const next = { ...s, [dayKey]: { ...(s[dayKey] || {}) } };
+    next[dayKey][personId] = Math.max(0, (next[dayKey][personId] || 0) + cal);
+    return next;
+  });
+  const _raw_setCaloriesBurnedTotal = (dayKey, personId, value) => setCaloriesBurned((s) => ({
     ...s, [dayKey]: { ...(s[dayKey] || {}), [personId]: Math.max(0, value) },
   }));
 
@@ -4556,32 +4727,46 @@ export default function TropheApp() {
   }));
 
   const _raw_generateWeek = (mode) => {
-    setOverrides((prev) => {
-      const next = JSON.parse(JSON.stringify(prev || {}));
-      WEEK_DAYS.forEach((day) => {
-        day.slots.forEach((slot) => {
-          if (isLocked(day.key, slot.key, locks)) return;
-          ["tyler", "elizabeth"].forEach((personId) => {
-            let pool;
-            if (slot.category === "lunch") {
-              pool = MEALS.filter((m) => m.category === "lunch" && (m.people === personId || m.people === "both")).map((m) => m.id);
-            } else if (slot.category === "dinner" && typeof slot.meal !== "string") {
-              pool = MEALS.filter((m) => m.category === "dinner" && m.people === personId).map((m) => m.id);
-              if (!pool.length) pool = SWAP_POOL.dinner;
-            } else {
-              pool = SWAP_POOL[slot.category] || [typeof slot.meal === "string" ? slot.meal : slot.meal[personId]];
-            }
-            let final = filterByPreferenceMode(pool, personId, prefs, mealsMap, foodsById, mode);
-            if (!final.length) final = pool;
-            const pick = final[Math.floor(Math.random() * final.length)];
-            next[day.key] = next[day.key] || {};
-            next[day.key][slot.key] = next[day.key][slot.key] || {};
-            next[day.key][slot.key][personId] = pick;
-          });
+    const next = JSON.parse(JSON.stringify(overrides || {}));
+
+    WEEK_DAYS.forEach((day) => {
+      day.slots.forEach((slot) => {
+        if (isLocked(day.key, slot.key, locks)) return;
+        ["tyler", "elizabeth"].forEach((personId) => {
+          let pool;
+          if (slot.category === "lunch") {
+            pool = allMeals.filter((m) => m.category === "lunch" && (m.people === personId || m.people === "both")).map((m) => m.id);
+          } else if (slot.category === "dinner" && typeof slot.meal !== "string") {
+            pool = allMeals.filter((m) => m.category === "dinner" && m.people === personId).map((m) => m.id);
+            if (!pool.length) pool = SWAP_POOL.dinner;
+          } else {
+            pool = SWAP_POOL[slot.category] || [typeof slot.meal === "string" ? slot.meal : slot.meal[personId]];
+          }
+
+          let final = filterByPreferenceMode(pool, personId, prefs, mealsMap, foodsById, mode);
+          if (!final.length) final = pool;
+          const pick = final[Math.floor(Math.random() * final.length)];
+          next[day.key] = next[day.key] || {};
+          next[day.key][slot.key] = next[day.key][slot.key] || {};
+          next[day.key][slot.key][personId] = pick;
         });
       });
-      return next;
     });
+
+    // Save the newly generated plan first.
+    setOverrides(next);
+
+    // Then calculate the grocery needs from THAT exact generated plan and
+    // save an immutable snapshot so future pantry/price/week changes cannot
+    // rewrite grocery history.
+    const generatedRows = buildGroceryList(next, foodsById, mealsMap).filter((r) => r.buyServings > 0);
+    const snapshot = createGrocerySnapshot(generatedRows, mode);
+    setGroceryHistory((history) => [snapshot, ...(history || [])].slice(0, 104));
+
+    // A newly generated week should start with a clean manual "My List" state.
+    // The complete generated needs remain visible below and are now archived
+    // in Grocery History automatically.
+    setGroceryChecked({});
   };
 
   const toggleLock = mut(_raw_toggleLock);
@@ -4600,6 +4785,8 @@ export default function TropheApp() {
   const updateLogEntry = mut(_raw_updateLogEntry);
   const addWater = mut(_raw_addWater);
   const setWaterTotal = mut(_raw_setWaterTotal);
+  const addCaloriesBurned = mut(_raw_addCaloriesBurned);
+  const setCaloriesBurnedTotal = mut(_raw_setCaloriesBurnedTotal);
   const updatePref = mut(_raw_updatePref);
   const updateNote = mut(_raw_updateNote);
   const updateFoodQty = mut(_raw_updateFoodQty);
@@ -4676,6 +4863,7 @@ export default function TropheApp() {
             foodsById={foodsById} mealsMap={mealsMap} prefs={prefs}
             profile={profiles[person]} overrides={overrides} locks={locks} foodLog={foodLog} toggleEaten={toggleEaten}
             removeLogEntry={removeLogEntry} updateLogEntry={updateLogEntry} water={water} addWater={addWater} setWaterTotal={setWaterTotal}
+            caloriesBurned={caloriesBurned} addCaloriesBurned={addCaloriesBurned} setCaloriesBurnedTotal={setCaloriesBurnedTotal}
             timeOverrides={timeOverrides} setTimeOverride={setTimeOverride}
             workoutOverrides={workoutOverrides} setWorkoutOverride={setWorkoutOverride} routine={routine}
             onOpenModal={(m) => m === "addFood" ? (setView("meals"), setAddFoodTrigger((n) => n + 1)) : setModal(m)}
@@ -4699,7 +4887,7 @@ export default function TropheApp() {
         {view === "groceries" && (
           <GroceriesScreen overrides={overrides} foodsById={foodsById} mealsMap={mealsMap}
             checked={groceryChecked} toggleChecked={toggleGroceryChecked} setCheckedMany={setCheckedMany}
-            onClearPurchased={clearPurchased} budget={budget} setBudget={setBudget}
+            onClearPurchased={clearPurchased} budget={budget} setBudget={setBudget} groceryHistory={groceryHistory}
             onNavigateInventory={() => { setView("meals"); setInventoryTrigger((n) => n + 1); }} />
         )}
         {view === "profile" && profileSub === "overview" && (
@@ -4715,7 +4903,7 @@ export default function TropheApp() {
         )}
         {view === "profile" && profileSub === "progress" && (
           <ProgressScreen onBack={() => { setProfileSub("overview"); setTourStep(null); }} person={progressPerson} setPerson={setProgressPerson}
-            foodLog={foodLog} water={water} gymLog={gymLog} />
+            foodLog={foodLog} water={water} gymLog={gymLog} caloriesBurned={caloriesBurned} />
         )}
         {view === "profile" && profileSub === "help" && (
           <HelpScreen onBack={() => { setProfileSub("overview"); setTourStep(null); }} onStartTour={startTour} onOpenLibrary={() => setProfileSub("library")} />
