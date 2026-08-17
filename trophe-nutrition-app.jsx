@@ -131,51 +131,51 @@ const CATEGORY_META = {
 /* Every macro is per ONE serving (see servingLabel). Estimates are
    reasonable household-kitchen figures, not lab-verified values. */
 const FOODS = [
-  { id:"egg", name:"Eggs", category:"Protein", servingLabel:"2 large eggs", cal:140, p:12, c:1, f:10, fiber:0, gf:true, ai:true, price:0.7, store:"Costco", location:"fridge", qty:24, pkgServings:24 },
-  { id:"bacon", name:"Bacon", category:"Protein", servingLabel:"3 slices", cal:135, p:9, c:0, f:11, fiber:0, gf:true, ai:false, price:1.1, store:"Costco", location:"fridge", qty:9, pkgServings:12 },
-  { id:"potatoes", name:"Roasted Potatoes", category:"Carbohydrate", servingLabel:"1 cup", cal:180, p:3, c:33, f:4, fiber:3, gf:true, ai:true, price:0.6, store:"Aldi", location:"pantry", qty:10, pkgServings:10 },
-  { id:"berries", name:"Mixed Berries", category:"Fruit", servingLabel:"1/2 cup", cal:40, p:1, c:10, f:0, fiber:2, gf:true, ai:true, price:1.2, store:"Costco", location:"fridge", qty:6, pkgServings:14 },
-  { id:"banana", name:"Banana", category:"Fruit", servingLabel:"1 medium", cal:105, p:1, c:27, f:0, fiber:3, gf:true, ai:true, price:0.25, store:"Aldi", location:"pantry", qty:5, pkgServings:6 },
-  { id:"applesauce", name:"Applesauce", category:"Fruit", servingLabel:"1/2 cup, unsweetened", cal:50, p:0, c:14, f:0, fiber:1, gf:true, ai:true, price:0.5, store:"Aldi", location:"pantry", qty:8, pkgServings:12 },
-  { id:"greekyogurt", name:"Greek Yogurt", category:"Dairy", servingLabel:"3/4 cup, plain", cal:130, p:20, c:8, f:0, fiber:0, gf:true, ai:true, price:0.9, store:"Costco", location:"fridge", qty:5, pkgServings:12 },
-  { id:"premierprotein", name:"Premier Protein Shake", category:"Drinks", servingLabel:"1 bottle", cal:160, p:30, c:4, f:3, fiber:0, gf:true, ai:false, price:1.7, store:"Costco", location:"pantry", qty:10, pkgServings:12, variantOf:"Chocolate" },
-  { id:"chipotlechicken", name:"Chipotle Seasoned Chicken", category:"Protein", brand:"Costco / prepared item", servingLabel:"3 oz", cal:100, p:16, c:2, f:3, fiber:0, gf:true, ai:true, price:1.9, store:"Costco", location:"fridge", qty:9, pkgServings:16 },
-  { id:"jasminerice", name:"Jasmine Rice", category:"Carbohydrate", servingLabel:"1 cup cooked", cal:205, p:4, c:45, f:0.4, fiber:1, gf:true, ai:true, price:0.4, store:"Aldi", location:"pantry", qty:6, pkgServings:24 },
-  { id:"broccoli", name:"Broccoli", category:"Vegetable", servingLabel:"1 cup", cal:30, p:2.5, c:6, f:0.3, fiber:2, gf:true, ai:true, price:0.8, store:"Aldi", location:"fridge", qty:5, pkgServings:8 },
-  { id:"valentina", name:"Valentina Hot Sauce", category:"Sauces", servingLabel:"1 tbsp", cal:0, p:0, c:0, f:0, fiber:0, gf:true, ai:false, price:0.05, store:"Aldi", location:"pantry", qty:40, pkgServings:60 },
-  { id:"cornTortilla", name:"Corn Tortillas", category:"Carbohydrate", servingLabel:"2 tortillas", cal:100, p:2, c:22, f:1, fiber:2, gf:true, ai:true, price:0.3, store:"Aldi", location:"pantry", qty:14, pkgServings:20 },
-  { id:"lettuce", name:"Lettuce", category:"Vegetable", servingLabel:"1 cup, shredded", cal:5, p:0.5, c:1, f:0, fiber:1, gf:true, ai:true, price:0.4, store:"Aldi", location:"fridge", qty:6, pkgServings:10 },
-  { id:"cheese", name:"Shredded Cheese", category:"Dairy", servingLabel:"1/4 cup", cal:110, p:7, c:1, f:9, fiber:0, gf:true, ai:false, price:0.6, store:"Costco", location:"fridge", qty:12, pkgServings:24 },
-  { id:"groundbeef", name:"Ground Beef 90/10", category:"Protein", servingLabel:"3 oz cooked", cal:180, p:22, c:0, f:10, fiber:0, gf:true, ai:true, price:1.6, store:"Costco", location:"freezer", qty:6, pkgServings:12 },
-  { id:"shrimp", name:"Shrimp", category:"Protein", servingLabel:"4 oz cooked", cal:120, p:26, c:0, f:1.5, fiber:0, gf:true, ai:true, price:2.4, store:"Costco", location:"freezer", qty:4, pkgServings:10 },
-  { id:"pork", name:"Pork Tenderloin", category:"Protein", servingLabel:"4 oz cooked", cal:150, p:28, c:0, f:4, fiber:0, gf:true, ai:true, price:1.8, store:"Costco", location:"freezer", qty:3, pkgServings:6 },
-  { id:"sirloin", name:"Sirloin Steak", category:"Protein", servingLabel:"6 oz cooked", cal:350, p:48, c:0, f:16, fiber:0, gf:true, ai:true, price:5.5, store:"Costco", location:"freezer", qty:2, pkgServings:6 },
-  { id:"greenbeans", name:"Green Beans", category:"Vegetable", servingLabel:"1 cup", cal:35, p:2, c:8, f:0, fiber:3, gf:true, ai:true, price:0.7, store:"Aldi", location:"freezer", qty:5, pkgServings:8 },
-  { id:"turkey", name:"Turkey (deli)", category:"Protein", servingLabel:"3 oz", cal:90, p:18, c:1, f:1.5, fiber:0, gf:true, ai:true, price:1.4, store:"Aldi", location:"fridge", qty:6, pkgServings:8 },
-  { id:"stringcheese", name:"String Cheese", category:"Dairy", servingLabel:"1 stick", cal:80, p:7, c:1, f:6, fiber:0, gf:true, ai:false, price:0.35, store:"Costco", location:"fridge", qty:10, pkgServings:16 },
-  { id:"cottagecheese", name:"Cottage Cheese", category:"Dairy", servingLabel:"1/2 cup", cal:90, p:12, c:4, f:2.5, fiber:0, gf:true, ai:true, price:0.7, store:"Aldi", location:"fridge", qty:3, pkgServings:8 },
-  { id:"pineapple", name:"Pineapple", category:"Fruit", servingLabel:"1/2 cup", cal:40, p:0.5, c:10, f:0, fiber:1, gf:true, ai:true, price:0.9, store:"Costco", location:"fridge", qty:4, pkgServings:10 },
-  { id:"ricecakes", name:"Rice Cakes", category:"Carbohydrate", servingLabel:"2 cakes", cal:70, p:1, c:15, f:0, fiber:0.5, gf:true, ai:true, price:0.3, store:"Aldi", location:"pantry", qty:10, pkgServings:16 },
-  { id:"honey", name:"Honey", category:"Sauces", servingLabel:"1 tbsp", cal:60, p:0, c:17, f:0, fiber:0, gf:true, ai:true, price:0.2, store:"Aldi", location:"pantry", qty:24, pkgServings:36 },
-  { id:"gfpretzels", name:"GF Pretzels", category:"Snacks", servingLabel:"1 oz", cal:110, p:2, c:22, f:1, fiber:1, gf:true, ai:false, price:0.6, store:"Aldi", location:"pantry", qty:8, pkgServings:12 },
-  { id:"gfcereal", name:"GF Cereal", category:"Carbohydrate", servingLabel:"1 cup", cal:110, p:2, c:24, f:1, fiber:2, gf:true, ai:false, price:0.7, store:"Aldi", location:"pantry", qty:8, pkgServings:12 },
-  { id:"milk", name:"2% Milk", category:"Dairy", servingLabel:"1 cup", cal:120, p:8, c:12, f:5, fiber:0, gf:true, ai:false, price:0.3, store:"Aldi", location:"fridge", qty:10, pkgServings:16 },
-  { id:"burgerpatty", name:"Burger Patty", category:"Protein", servingLabel:"4 oz beef", cal:240, p:22, c:0, f:17, fiber:0, gf:true, ai:true, price:2.1, store:"Costco", location:"freezer", qty:4, pkgServings:8 },
-  { id:"pickles", name:"Pickles", category:"Condiments", servingLabel:"a few slices", cal:5, p:0, c:1, f:0, fiber:0, gf:true, ai:true, price:0.1, store:"Aldi", location:"pantry", qty:20, pkgServings:24 },
-  { id:"asparagus", name:"Asparagus", category:"Vegetable", servingLabel:"1 cup", cal:27, p:3, c:5, f:0, fiber:2, gf:true, ai:true, price:1.3, store:"Aldi", location:"fridge", qty:3, pkgServings:6 },
-  { id:"tomato", name:"Tomato", category:"Vegetable", servingLabel:"1 medium", cal:22, p:1, c:5, f:0, fiber:1.5, gf:true, ai:true, price:0.6, store:"Aldi", location:"fridge", qty:4, pkgServings:6, contains:["tomato"] },
-  { id:"cucumber", name:"Cucumber", category:"Vegetable", servingLabel:"1 cup", cal:16, p:0.7, c:4, f:0, fiber:0.5, gf:true, ai:true, price:0.7, store:"Aldi", location:"fridge", qty:3, pkgServings:4 },
-  { id:"bellpepper", name:"Bell Pepper", category:"Vegetable", servingLabel:"1 cup", cal:30, p:1, c:7, f:0, fiber:2, gf:true, ai:true, price:0.9, store:"Aldi", location:"fridge", qty:3, pkgServings:5, contains:["peppers"] },
-  { id:"onion", name:"Onion", category:"Vegetable", servingLabel:"1/2 cup", cal:32, p:1, c:8, f:0, fiber:1.5, gf:true, ai:true, price:0.3, store:"Aldi", location:"pantry", qty:6, pkgServings:10, contains:["onions"] },
-  { id:"mushrooms", name:"Mushrooms", category:"Vegetable", servingLabel:"1 cup", cal:15, p:2, c:2, f:0, fiber:1, gf:true, ai:true, price:1.1, store:"Aldi", location:"fridge", qty:2, pkgServings:5, contains:["mushrooms"] },
-  { id:"blackeyedpeas", name:"Black-Eyed Peas", category:"Protein", servingLabel:"1/2 cup cooked", cal:100, p:7, c:18, f:0.5, fiber:4, gf:true, ai:true, price:0.6, store:"Aldi", location:"pantry", qty:4, pkgServings:6 },
-  { id:"blueberries", name:"Blueberries", category:"Fruit", servingLabel:"1/2 cup", cal:42, p:0.5, c:11, f:0, fiber:2, gf:true, ai:true, price:1.4, store:"Costco", location:"fridge", qty:5, pkgServings:12 },
-  { id:"strawberries", name:"Strawberries", category:"Fruit", servingLabel:"1/2 cup", cal:27, p:0.6, c:6.5, f:0, fiber:1.5, gf:true, ai:true, price:1.1, store:"Costco", location:"fridge", qty:5, pkgServings:12 },
-  { id:"grapes", name:"Grapes", category:"Fruit", servingLabel:"1/2 cup", cal:52, p:0.5, c:14, f:0, fiber:0.5, gf:true, ai:true, price:1.0, store:"Costco", location:"fridge", qty:4, pkgServings:10 },
-  { id:"blackberries", name:"Blackberries", category:"Fruit", servingLabel:"1/2 cup", cal:31, p:1, c:7, f:0, fiber:4, gf:true, ai:true, price:1.3, store:"Costco", location:"fridge", qty:4, pkgServings:10 },
-  { id:"vanillayogurt", name:"Vanilla Yogurt", category:"Dairy", servingLabel:"3/4 cup", cal:150, p:12, c:22, f:2, fiber:0, gf:true, ai:false, price:0.8, store:"Aldi", location:"fridge", qty:4, pkgServings:8, flavor:"vanilla" },
-  { id:"apple", name:"Apple", category:"Fruit", servingLabel:"1 medium", cal:95, p:0.5, c:25, f:0, fiber:4, gf:true, ai:true, price:0.5, store:"Aldi", location:"pantry", qty:6, pkgServings:8 },
-  { id:"butterchicken", name:"Sukhi's Butter Chicken", category:"Protein", brand:"Sukhi's / prepared item", servingLabel:"5 oz", cal:160, p:20, c:6, f:6, fiber:1, gf:true, ai:false, price:2.5, store:"Costco", location:"freezer", qty:4, pkgServings:8 },
+  { id:"egg", name:"Eggs", category:"Protein", servingLabel:"2 large eggs", cal:140, p:12, c:1, f:10, fiber:0, satFat:3.3, transFat:0, cholesterol:372, sodium:140, sugar:0, gf:true, ai:true, price:0.7, store:"Costco", location:"fridge", qty:24, pkgServings:24 },
+  { id:"bacon", name:"Bacon", category:"Protein", servingLabel:"3 slices", cal:135, p:9, c:0, f:11, fiber:0, satFat:4, transFat:0, cholesterol:30, sodium:450, sugar:0, gf:true, ai:false, price:1.1, store:"Costco", location:"fridge", qty:9, pkgServings:12 },
+  { id:"potatoes", name:"Roasted Potatoes", category:"Carbohydrate", servingLabel:"1 cup", cal:180, p:3, c:33, f:4, fiber:3, satFat:0.6, transFat:0, cholesterol:0, sodium:10, sugar:2, gf:true, ai:true, price:0.6, store:"Aldi", location:"pantry", qty:10, pkgServings:10 },
+  { id:"berries", name:"Mixed Berries", category:"Fruit", servingLabel:"1/2 cup", cal:40, p:1, c:10, f:0, fiber:2, satFat:0, transFat:0, cholesterol:0, sodium:1, sugar:7, gf:true, ai:true, price:1.2, store:"Costco", location:"fridge", qty:6, pkgServings:14 },
+  { id:"banana", name:"Banana", category:"Fruit", servingLabel:"1 medium", cal:105, p:1, c:27, f:0, fiber:3, satFat:0, transFat:0, cholesterol:0, sodium:1, sugar:14, gf:true, ai:true, price:0.25, store:"Aldi", location:"pantry", qty:5, pkgServings:6 },
+  { id:"applesauce", name:"Applesauce", category:"Fruit", servingLabel:"1/2 cup, unsweetened", cal:50, p:0, c:14, f:0, fiber:1, satFat:0, transFat:0, cholesterol:0, sodium:2, sugar:11, gf:true, ai:true, price:0.5, store:"Aldi", location:"pantry", qty:8, pkgServings:12 },
+  { id:"greekyogurt", name:"Greek Yogurt", category:"Dairy", servingLabel:"3/4 cup, plain", cal:130, p:20, c:8, f:0, fiber:0, satFat:0, transFat:0, cholesterol:10, sodium:55, sugar:6, gf:true, ai:true, price:0.9, store:"Costco", location:"fridge", qty:5, pkgServings:12 },
+  { id:"premierprotein", name:"Premier Protein Shake", category:"Drinks", servingLabel:"1 bottle", cal:160, p:30, c:4, f:3, fiber:0, satFat:0.5, transFat:0, cholesterol:15, sodium:220, sugar:1, gf:true, ai:false, price:1.7, store:"Costco", location:"pantry", qty:10, pkgServings:12, variantOf:"Chocolate" },
+  { id:"chipotlechicken", name:"Chipotle Seasoned Chicken", category:"Protein", brand:"Costco / prepared item", servingLabel:"3 oz", cal:100, p:16, c:2, f:3, fiber:0, satFat:0.7, transFat:0, cholesterol:55, sodium:380, sugar:1, gf:true, ai:true, price:1.9, store:"Costco", location:"fridge", qty:9, pkgServings:16 },
+  { id:"jasminerice", name:"Jasmine Rice", category:"Carbohydrate", servingLabel:"1 cup cooked", cal:205, p:4, c:45, f:0.4, fiber:1, satFat:0.1, transFat:0, cholesterol:0, sodium:2, sugar:0, gf:true, ai:true, price:0.4, store:"Aldi", location:"pantry", qty:6, pkgServings:24 },
+  { id:"broccoli", name:"Broccoli", category:"Vegetable", servingLabel:"1 cup", cal:30, p:2.5, c:6, f:0.3, fiber:2, satFat:0, transFat:0, cholesterol:0, sodium:30, sugar:1.5, gf:true, ai:true, price:0.8, store:"Aldi", location:"fridge", qty:5, pkgServings:8 },
+  { id:"valentina", name:"Valentina Hot Sauce", category:"Sauces", servingLabel:"1 tbsp", cal:0, p:0, c:0, f:0, fiber:0, satFat:0, transFat:0, cholesterol:0, sodium:120, sugar:0, gf:true, ai:false, price:0.05, store:"Aldi", location:"pantry", qty:40, pkgServings:60 },
+  { id:"cornTortilla", name:"Corn Tortillas", category:"Carbohydrate", servingLabel:"2 tortillas", cal:100, p:2, c:22, f:1, fiber:2, satFat:0.1, transFat:0, cholesterol:0, sodium:10, sugar:0, gf:true, ai:true, price:0.3, store:"Aldi", location:"pantry", qty:14, pkgServings:20 },
+  { id:"lettuce", name:"Lettuce", category:"Vegetable", servingLabel:"1 cup, shredded", cal:5, p:0.5, c:1, f:0, fiber:1, satFat:0, transFat:0, cholesterol:0, sodium:5, sugar:0.5, gf:true, ai:true, price:0.4, store:"Aldi", location:"fridge", qty:6, pkgServings:10 },
+  { id:"cheese", name:"Shredded Cheese", category:"Dairy", servingLabel:"1/4 cup", cal:110, p:7, c:1, f:9, fiber:0, satFat:5.5, transFat:0.3, cholesterol:30, sodium:180, sugar:0.5, gf:true, ai:false, price:0.6, store:"Costco", location:"fridge", qty:12, pkgServings:24 },
+  { id:"groundbeef", name:"Ground Beef 90/10", category:"Protein", servingLabel:"3 oz cooked", cal:180, p:22, c:0, f:10, fiber:0, satFat:4, transFat:0.3, cholesterol:70, sodium:65, sugar:0, gf:true, ai:true, price:1.6, store:"Costco", location:"freezer", qty:6, pkgServings:12 },
+  { id:"shrimp", name:"Shrimp", category:"Protein", servingLabel:"4 oz cooked", cal:120, p:26, c:0, f:1.5, fiber:0, satFat:0.3, transFat:0, cholesterol:220, sodium:190, sugar:0, gf:true, ai:true, price:2.4, store:"Costco", location:"freezer", qty:4, pkgServings:10 },
+  { id:"pork", name:"Pork Tenderloin", category:"Protein", servingLabel:"4 oz cooked", cal:150, p:28, c:0, f:4, fiber:0, satFat:1.3, transFat:0, cholesterol:75, sodium:55, sugar:0, gf:true, ai:true, price:1.8, store:"Costco", location:"freezer", qty:3, pkgServings:6 },
+  { id:"sirloin", name:"Sirloin Steak", category:"Protein", servingLabel:"6 oz cooked", cal:350, p:48, c:0, f:16, fiber:0, satFat:6, transFat:0.5, cholesterol:130, sodium:110, sugar:0, gf:true, ai:true, price:5.5, store:"Costco", location:"freezer", qty:2, pkgServings:6 },
+  { id:"greenbeans", name:"Green Beans", category:"Vegetable", servingLabel:"1 cup", cal:35, p:2, c:8, f:0, fiber:3, satFat:0, transFat:0, cholesterol:0, sodium:6, sugar:3.5, gf:true, ai:true, price:0.7, store:"Aldi", location:"freezer", qty:5, pkgServings:8 },
+  { id:"turkey", name:"Turkey (deli)", category:"Protein", servingLabel:"3 oz", cal:90, p:18, c:1, f:1.5, fiber:0, satFat:0.5, transFat:0, cholesterol:35, sodium:700, sugar:1, gf:true, ai:true, price:1.4, store:"Aldi", location:"fridge", qty:6, pkgServings:8 },
+  { id:"stringcheese", name:"String Cheese", category:"Dairy", servingLabel:"1 stick", cal:80, p:7, c:1, f:6, fiber:0, satFat:3.5, transFat:0, cholesterol:20, sodium:200, sugar:0, gf:true, ai:false, price:0.35, store:"Costco", location:"fridge", qty:10, pkgServings:16 },
+  { id:"cottagecheese", name:"Cottage Cheese", category:"Dairy", servingLabel:"1/2 cup", cal:90, p:12, c:4, f:2.5, fiber:0, satFat:1.5, transFat:0, cholesterol:15, sodium:350, sugar:3, gf:true, ai:true, price:0.7, store:"Aldi", location:"fridge", qty:3, pkgServings:8 },
+  { id:"pineapple", name:"Pineapple", category:"Fruit", servingLabel:"1/2 cup", cal:40, p:0.5, c:10, f:0, fiber:1, satFat:0, transFat:0, cholesterol:0, sodium:1, sugar:8, gf:true, ai:true, price:0.9, store:"Costco", location:"fridge", qty:4, pkgServings:10 },
+  { id:"ricecakes", name:"Rice Cakes", category:"Carbohydrate", servingLabel:"2 cakes", cal:70, p:1, c:15, f:0, fiber:0.5, satFat:0, transFat:0, cholesterol:0, sodium:30, sugar:0, gf:true, ai:true, price:0.3, store:"Aldi", location:"pantry", qty:10, pkgServings:16 },
+  { id:"honey", name:"Honey", category:"Sauces", servingLabel:"1 tbsp", cal:60, p:0, c:17, f:0, fiber:0, satFat:0, transFat:0, cholesterol:0, sodium:0, sugar:17, gf:true, ai:true, price:0.2, store:"Aldi", location:"pantry", qty:24, pkgServings:36 },
+  { id:"gfpretzels", name:"GF Pretzels", category:"Snacks", servingLabel:"1 oz", cal:110, p:2, c:22, f:1, fiber:1, satFat:0, transFat:0, cholesterol:0, sodium:220, sugar:1, gf:true, ai:false, price:0.6, store:"Aldi", location:"pantry", qty:8, pkgServings:12 },
+  { id:"gfcereal", name:"GF Cereal", category:"Carbohydrate", servingLabel:"1 cup", cal:110, p:2, c:24, f:1, fiber:2, satFat:0.2, transFat:0, cholesterol:0, sodium:150, sugar:8, gf:true, ai:false, price:0.7, store:"Aldi", location:"pantry", qty:8, pkgServings:12 },
+  { id:"milk", name:"2% Milk", category:"Dairy", servingLabel:"1 cup", cal:120, p:8, c:12, f:5, fiber:0, satFat:3, transFat:0, cholesterol:20, sodium:100, sugar:12, gf:true, ai:false, price:0.3, store:"Aldi", location:"fridge", qty:10, pkgServings:16 },
+  { id:"burgerpatty", name:"Burger Patty", category:"Protein", servingLabel:"4 oz beef", cal:240, p:22, c:0, f:17, fiber:0, satFat:6.5, transFat:0.5, cholesterol:80, sodium:75, sugar:0, gf:true, ai:true, price:2.1, store:"Costco", location:"freezer", qty:4, pkgServings:8 },
+  { id:"pickles", name:"Pickles", category:"Condiments", servingLabel:"a few slices", cal:5, p:0, c:1, f:0, fiber:0, satFat:0, transFat:0, cholesterol:0, sodium:250, sugar:0.5, gf:true, ai:true, price:0.1, store:"Aldi", location:"pantry", qty:20, pkgServings:24 },
+  { id:"asparagus", name:"Asparagus", category:"Vegetable", servingLabel:"1 cup", cal:27, p:3, c:5, f:0, fiber:2, satFat:0, transFat:0, cholesterol:0, sodium:3, sugar:2.5, gf:true, ai:true, price:1.3, store:"Aldi", location:"fridge", qty:3, pkgServings:6 },
+  { id:"tomato", name:"Tomato", category:"Vegetable", servingLabel:"1 medium", cal:22, p:1, c:5, f:0, fiber:1.5, satFat:0, transFat:0, cholesterol:0, sodium:6, sugar:3, gf:true, ai:true, price:0.6, store:"Aldi", location:"fridge", qty:4, pkgServings:6, contains:["tomato"] },
+  { id:"cucumber", name:"Cucumber", category:"Vegetable", servingLabel:"1 cup", cal:16, p:0.7, c:4, f:0, fiber:0.5, satFat:0, transFat:0, cholesterol:0, sodium:2, sugar:2, gf:true, ai:true, price:0.7, store:"Aldi", location:"fridge", qty:3, pkgServings:4 },
+  { id:"bellpepper", name:"Bell Pepper", category:"Vegetable", servingLabel:"1 cup", cal:30, p:1, c:7, f:0, fiber:2, satFat:0, transFat:0, cholesterol:0, sodium:4, sugar:4, gf:true, ai:true, price:0.9, store:"Aldi", location:"fridge", qty:3, pkgServings:5, contains:["peppers"] },
+  { id:"onion", name:"Onion", category:"Vegetable", servingLabel:"1/2 cup", cal:32, p:1, c:8, f:0, fiber:1.5, satFat:0, transFat:0, cholesterol:0, sodium:3, sugar:4, gf:true, ai:true, price:0.3, store:"Aldi", location:"pantry", qty:6, pkgServings:10, contains:["onions"] },
+  { id:"mushrooms", name:"Mushrooms", category:"Vegetable", servingLabel:"1 cup", cal:15, p:2, c:2, f:0, fiber:1, satFat:0, transFat:0, cholesterol:0, sodium:4, sugar:2, gf:true, ai:true, price:1.1, store:"Aldi", location:"fridge", qty:2, pkgServings:5, contains:["mushrooms"] },
+  { id:"blackeyedpeas", name:"Black-Eyed Peas", category:"Protein", servingLabel:"1/2 cup cooked", cal:100, p:7, c:18, f:0.5, fiber:4, satFat:0.1, transFat:0, cholesterol:0, sodium:3, sugar:3, gf:true, ai:true, price:0.6, store:"Aldi", location:"pantry", qty:4, pkgServings:6 },
+  { id:"blueberries", name:"Blueberries", category:"Fruit", servingLabel:"1/2 cup", cal:42, p:0.5, c:11, f:0, fiber:2, satFat:0, transFat:0, cholesterol:0, sodium:1, sugar:7, gf:true, ai:true, price:1.4, store:"Costco", location:"fridge", qty:5, pkgServings:12 },
+  { id:"strawberries", name:"Strawberries", category:"Fruit", servingLabel:"1/2 cup", cal:27, p:0.6, c:6.5, f:0, fiber:1.5, satFat:0, transFat:0, cholesterol:0, sodium:1, sugar:4, gf:true, ai:true, price:1.1, store:"Costco", location:"fridge", qty:5, pkgServings:12 },
+  { id:"grapes", name:"Grapes", category:"Fruit", servingLabel:"1/2 cup", cal:52, p:0.5, c:14, f:0, fiber:0.5, satFat:0, transFat:0, cholesterol:0, sodium:2, sugar:12, gf:true, ai:true, price:1.0, store:"Costco", location:"fridge", qty:4, pkgServings:10 },
+  { id:"blackberries", name:"Blackberries", category:"Fruit", servingLabel:"1/2 cup", cal:31, p:1, c:7, f:0, fiber:4, satFat:0, transFat:0, cholesterol:0, sodium:1, sugar:3.5, gf:true, ai:true, price:1.3, store:"Costco", location:"fridge", qty:4, pkgServings:10 },
+  { id:"vanillayogurt", name:"Vanilla Yogurt", category:"Dairy", servingLabel:"3/4 cup", cal:150, p:12, c:22, f:2, fiber:0, satFat:1, transFat:0, cholesterol:8, sodium:90, sugar:19, gf:true, ai:false, price:0.8, store:"Aldi", location:"fridge", qty:4, pkgServings:8, flavor:"vanilla" },
+  { id:"apple", name:"Apple", category:"Fruit", servingLabel:"1 medium", cal:95, p:0.5, c:25, f:0, fiber:4, satFat:0, transFat:0, cholesterol:0, sodium:2, sugar:19, gf:true, ai:true, price:0.5, store:"Aldi", location:"pantry", qty:6, pkgServings:8 },
+  { id:"butterchicken", name:"Sukhi's Butter Chicken", category:"Protein", brand:"Sukhi's / prepared item", servingLabel:"5 oz", cal:160, p:20, c:6, f:6, fiber:1, satFat:2.5, transFat:0, cholesterol:45, sodium:480, sugar:3, gf:true, ai:false, price:2.5, store:"Costco", location:"freezer", qty:4, pkgServings:8 },
 ];
 
 /* Multi-store pricing: every food gets a `prices` array ([{store, price}])
@@ -578,9 +578,14 @@ function computeItemsNutrition(items, foodsById) {
     acc.c += f.c * it.qty;
     acc.f += f.f * it.qty;
     acc.fiber += (f.fiber || 0) * it.qty;
+    acc.satFat += (f.satFat || 0) * it.qty;
+    acc.transFat += (f.transFat || 0) * it.qty;
+    acc.cholesterol += (f.cholesterol || 0) * it.qty;
+    acc.sodium += (f.sodium || 0) * it.qty;
+    acc.sugar += (f.sugar || 0) * it.qty;
     acc.cost += effectivePrice(f) * it.qty;
     return acc;
-  }, { cal: 0, p: 0, c: 0, f: 0, fiber: 0, cost: 0 });
+  }, { cal: 0, p: 0, c: 0, f: 0, fiber: 0, satFat: 0, transFat: 0, cholesterol: 0, sodium: 0, sugar: 0, cost: 0 });
 }
 
 function mealIndex(meals) {
@@ -855,6 +860,36 @@ function Bar({ value, max, color = "var(--ink)", track = "var(--paper-3)", h = 8
   return (
     <div style={{ height: h, borderRadius: 999, background: track, overflow: "hidden" }}>
       <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 999, transition: "width .5s ease" }} />
+    </div>
+  );
+}
+
+/** A compact, real-nutrition-label-style breakdown. `n` needs at minimum
+    f, c, p; anything else (fiber, satFat, transFat, cholesterol, sodium,
+    sugar) defaults to 0 if not present, so this works for both foods with
+    full data and quick-add/restaurant entries that only have the basics. */
+function NutritionFactsRow({ label, value, unit, indent, bold }) {
+  return (
+    <div className="flex items-center justify-between py-1" style={{ borderBottom: "0.5px solid rgba(60,60,67,.14)" }}>
+      <span className={`text-[12.5px] ${bold ? "font-bold" : ""}`} style={{ color: indent ? "var(--ink-soft)" : "var(--ink)", paddingLeft: indent ? 14 : 0 }}>{label}</span>
+      <span className="font-mono text-[12.5px]" style={{ color: "var(--ink-soft)" }}>{round(value || 0, 1)}{unit}</span>
+    </div>
+  );
+}
+function NutritionFactsPanel({ n, title = "NUTRITION FACTS" }) {
+  return (
+    <div className="p-3 rounded-2xl" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+      <div className="text-[11px] font-bold mb-1.5" style={{ color: "var(--ink-faint)" }}>{title}</div>
+      <NutritionFactsRow label="Calories" value={n.cal} unit="" bold />
+      <NutritionFactsRow label="Total Fat" value={n.f} unit="g" bold />
+      <NutritionFactsRow label="Saturated Fat" value={n.satFat} unit="g" indent />
+      <NutritionFactsRow label="Trans Fat" value={n.transFat} unit="g" indent />
+      <NutritionFactsRow label="Cholesterol" value={n.cholesterol} unit="mg" bold />
+      <NutritionFactsRow label="Sodium" value={n.sodium} unit="mg" bold />
+      <NutritionFactsRow label="Total Carbohydrate" value={n.c} unit="g" bold />
+      <NutritionFactsRow label="Dietary Fiber" value={n.fiber} unit="g" indent />
+      <NutritionFactsRow label="Sugars" value={n.sugar} unit="g" indent />
+      <NutritionFactsRow label="Protein" value={n.p} unit="g" bold />
     </div>
   );
 }
@@ -1147,11 +1182,14 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
 
   const eatenTotals = useMemo(() => entries.reduce((t, e) => ({
     cal: t.cal + e.cal, p: t.p + e.p, c: t.c + e.c, f: t.f + e.f, fiber: t.fiber + (e.fiber || 0),
-  }), { cal: 0, p: 0, c: 0, f: 0, fiber: 0 }), [entries]);
+    satFat: t.satFat + (e.satFat || 0), transFat: t.transFat + (e.transFat || 0),
+    cholesterol: t.cholesterol + (e.cholesterol || 0), sodium: t.sodium + (e.sodium || 0), sugar: t.sugar + (e.sugar || 0),
+  }), { cal: 0, p: 0, c: 0, f: 0, fiber: 0, satFat: 0, transFat: 0, cholesterol: 0, sodium: 0, sugar: 0 }), [entries]);
 
   const targetWater = profile.waterTarget;
   const gotWater = water?.[viewDate]?.[person] || 0;
   const [customWater, setCustomWater] = useState("");
+  const [showDayFacts, setShowDayFacts] = useState(false);
   const [editingWater, setEditingWater] = useState(false);
 
   const remaining = {
@@ -1353,7 +1391,7 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
               <div className="flex items-center gap-3 py-2.5">
                 <div style={{ width: 54, flexShrink: 0, color: "var(--ink-faint)" }} className="font-mono text-[11px]">{e.time}</div>
                 <div style={{ flex: 1 }}>
-                  <div className="text-[13.5px] font-semibold leading-tight">{e.label}</div>
+                  <div className="text-[13.5px] font-semibold leading-tight">{e.label}{e.servingNote && <span className="font-normal" style={{ color: "var(--ink-faint)" }}> · {e.servingNote}</span>}</div>
                   <div className="font-mono text-[11px] mt-0.5" style={{ color: "var(--ink-soft)" }}>{round(e.cal)} cal · {round(e.p)}g P · {round(e.c)}g C · {round(e.f)}g F</div>
                 </div>
                 <button onClick={() => removeLogEntry(viewDate, person, e.id)} className="tap" style={{ padding: 5 }}>
@@ -1364,6 +1402,14 @@ function HomeScreen({ person, setPerson, viewDate, setViewDate, foodsById, meals
             </React.Fragment>
           ))}
         </div>
+        {entries.length > 0 && (
+          <>
+            <button onClick={() => setShowDayFacts(!showDayFacts)} className="tap text-[12.5px] font-semibold mt-2.5 inline-flex items-center gap-1" style={{ color: "var(--blue)" }}>
+              {showDayFacts ? "Hide" : "Show"} Full Nutrition Facts for {isToday ? "Today" : formatDateShort(viewDate)} <ChevronRight size={12} style={{ transform: showDayFacts ? "rotate(90deg)" : "none" }} />
+            </button>
+            {showDayFacts && <div className="mt-2.5"><NutritionFactsPanel n={eatenTotals} title={`TOTALS · ${(isToday ? "TODAY" : formatDateShort(viewDate)).toUpperCase()}`} /></div>}
+          </>
+        )}
       </div>
 
       {/* Quick actions */}
@@ -1605,6 +1651,7 @@ function explainMeal(meal, foodsById, prefs) {
 
 function MealDetailSheet({ meal, slot, day, foodsById, prefs, favorites, toggleFavorite, onClose, onDeleteRecipe }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showFacts, setShowFacts] = useState(false);
   if (!meal) return null;
   const n = computeItemsNutrition(meal.items, foodsById);
   const isFav = favorites?.includes(meal.id);
@@ -1617,10 +1664,14 @@ function MealDetailSheet({ meal, slot, day, foodsById, prefs, favorites, toggleF
           <span className="text-[12.5px] font-semibold" style={{ color: "var(--blue)", wordBreak: "break-all" }}>{meal.link}</span>
         </a>
       )}
-      <div className="font-mono text-[13px] mb-4" style={{ color: "var(--ink-soft)" }}>
+      <div className="font-mono text-[13px] mb-2" style={{ color: "var(--ink-soft)" }}>
         <b className="text-[15px]" style={{ color: "var(--ink)" }}>{round(n.cal)} cal</b>
         &nbsp;·&nbsp;{round(n.p)}g protein · {round(n.c)}g carbs · {round(n.f)}g fat · {round(n.fiber)}g fiber
       </div>
+      <button onClick={() => setShowFacts(!showFacts)} className="tap text-[12px] font-semibold mb-4 inline-flex items-center gap-1" style={{ color: "var(--blue)" }}>
+        {showFacts ? "Hide" : "Show"} Full Nutrition Facts <ChevronRight size={12} style={{ transform: showFacts ? "rotate(90deg)" : "none" }} />
+      </button>
+      {showFacts && <div className="mb-4"><NutritionFactsPanel n={n} title={`NUTRITION FACTS · ${meal.name.toUpperCase()}`} /></div>}
 
       {meal.sharedInfo && (
         <div className="p-3 rounded-2xl mb-4" style={{ background: "var(--sage-soft)" }}>
@@ -1818,6 +1869,9 @@ function FoodCard({ food, meals, prefs, updatePref, updateFoodQty, updateFoodPri
         <button onClick={() => toggleStaple(food.id)} className="tap text-[12px] font-semibold inline-flex items-center gap-1" style={{ color: food.isStaple ? "var(--mustard)" : "var(--blue)" }}>
           <Star size={12} fill={food.isStaple ? "var(--mustard)" : "none"} /> {food.isStaple ? "Staple" : "Mark as Staple"}
         </button>
+        <button onClick={() => setSection(section === "facts" ? null : "facts")} className="tap text-[12px] font-semibold inline-flex items-center gap-1" style={{ color: "var(--blue)" }}>
+          Nutrition Facts <ChevronRight size={12} style={{ transform: section === "facts" ? "rotate(90deg)" : "none" }} />
+        </button>
         <button onClick={() => setSection(section === "prefs" ? null : "prefs")} className="tap text-[12px] font-semibold inline-flex items-center gap-1" style={{ color: "var(--blue)" }}>
           Preferences <ChevronRight size={12} style={{ transform: section === "prefs" ? "rotate(90deg)" : "none" }} />
         </button>
@@ -1833,6 +1887,11 @@ function FoodCard({ food, meals, prefs, updatePref, updateFoodQty, updateFoodPri
       {food.isStaple && (
         <div className="text-[11px] mt-1.5" style={{ color: "var(--ink-faint)" }}>
           Staples stay on your grocery radar even when this week's recipes don't call for them — once one runs low, it shows up on Groceries automatically.
+        </div>
+      )}
+      {section === "facts" && (
+        <div className="mt-2.5">
+          <NutritionFactsPanel n={{ cal: food.cal, p: food.p, c: food.c, f: food.f, fiber: food.fiber, satFat: food.satFat, transFat: food.transFat, cholesterol: food.cholesterol, sodium: food.sodium, sugar: food.sugar }} title={`PER SERVING · ${food.servingLabel.toUpperCase()}`} />
         </div>
       )}
       {section === "prefs" && (
@@ -1910,8 +1969,10 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
   const [tab, setTab] = useState("meals"); // meals | foods | quick
   const [q, setQ] = useState("");
   const [qty, setQty] = useState(1);
+  const [customLabel, setCustomLabel] = useState("");
   const [picked, setPicked] = useState(null); // meal or food
-  const [quick, setQuick] = useState({ name: "", cal: "", p: "", c: "", f: "" });
+  const [quick, setQuick] = useState({ name: "", cal: "", p: "", c: "", f: "", fiber: "", satFat: "", transFat: "", cholesterol: "", sodium: "", sugar: "" });
+  const [quickAdvanced, setQuickAdvanced] = useState(false);
   const isToday = !targetDate || targetDate === todayISO();
 
   const filteredMeals = useMemo(() => meals.filter((m) => m.name.toLowerCase().includes(q.toLowerCase())), [meals, q]);
@@ -1919,14 +1980,17 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
 
   const submitMeal = (meal) => {
     const n = computeItemsNutrition(meal.items, foodsById);
-    onLog({ label: meal.name, time: nowDisplayTime(), cal: n.cal, p: n.p, c: n.c, f: n.f, fiber: n.fiber });
+    onLog({ label: meal.name, time: nowDisplayTime(), cal: n.cal, p: n.p, c: n.c, f: n.f, fiber: n.fiber, satFat: n.satFat, transFat: n.transFat, cholesterol: n.cholesterol, sodium: n.sodium, sugar: n.sugar });
     onClose();
   };
   const submitFood = () => {
     if (!picked) return;
+    const servingNote = customLabel.trim() || (qty === 1 ? picked.servingLabel : `${qty}× ${picked.servingLabel}`);
     onLog({
-      label: qty === 1 ? picked.name : `${picked.name} ×${qty}`, time: nowDisplayTime(),
+      label: picked.name, servingNote, time: nowDisplayTime(),
       cal: picked.cal * qty, p: picked.p * qty, c: picked.c * qty, f: picked.f * qty, fiber: (picked.fiber || 0) * qty,
+      satFat: (picked.satFat || 0) * qty, transFat: (picked.transFat || 0) * qty, cholesterol: (picked.cholesterol || 0) * qty,
+      sodium: (picked.sodium || 0) * qty, sugar: (picked.sugar || 0) * qty,
     });
     onClose();
   };
@@ -1934,7 +1998,9 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
     if (!quick.name.trim()) return;
     onLog({
       label: quick.name, time: nowDisplayTime(),
-      cal: Number(quick.cal) || 0, p: Number(quick.p) || 0, c: Number(quick.c) || 0, f: Number(quick.f) || 0, fiber: 0,
+      cal: Number(quick.cal) || 0, p: Number(quick.p) || 0, c: Number(quick.c) || 0, f: Number(quick.f) || 0, fiber: Number(quick.fiber) || 0,
+      satFat: Number(quick.satFat) || 0, transFat: Number(quick.transFat) || 0, cholesterol: Number(quick.cholesterol) || 0,
+      sodium: Number(quick.sodium) || 0, sugar: Number(quick.sugar) || 0,
     });
     onClose();
   };
@@ -1970,7 +2036,7 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
       })}
 
       {tab === "foods" && !picked && filteredFoods.slice(0, 30).map((f) => (
-        <button key={f.id} onClick={() => setPicked(f)} className="tap w-full text-left p-3 rounded-2xl mb-2" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+        <button key={f.id} onClick={() => { setPicked(f); setQty(1); setCustomLabel(""); }} className="tap w-full text-left p-3 rounded-2xl mb-2" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
           <div className="font-semibold text-[13.5px]">{f.name}</div>
           <div className="font-mono text-[11.5px] mt-1" style={{ color: "var(--ink-soft)" }}>{f.servingLabel} · {f.cal} cal · {f.p}g P</div>
         </button>
@@ -1981,14 +2047,25 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
             <div className="font-semibold text-[14px]">{picked.name}</div>
             <div className="text-[11.5px]" style={{ color: "var(--ink-faint)" }}>{picked.servingLabel} per serving</div>
           </div>
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <span className="text-[13px] font-semibold" style={{ color: "var(--ink-soft)" }}>Servings:</span>
-            <button onClick={() => setQty((q) => Math.max(0.5, q - 0.5))} className="tap" style={{ width: 26, height: 26, borderRadius: 999, border: "1px solid var(--line)" }}>−</button>
-            <span className="font-mono text-[14px] w-8 text-center">{qty}</span>
-            <button onClick={() => setQty((q) => q + 0.5)} className="tap" style={{ width: 26, height: 26, borderRadius: 999, border: "1px solid var(--line)" }}>+</button>
+            <button onClick={() => setQty((q) => Math.max(0.25, round(q - 0.25, 2)))} className="tap" style={{ width: 26, height: 26, borderRadius: 999, border: "1px solid var(--line)" }}>−</button>
+            <input type="number" step="0.25" value={qty} onChange={(e) => setQty(Math.max(0, Number(e.target.value) || 0))}
+              className="font-mono text-[14px] text-center" style={{ width: 56, border: "1px solid var(--line)", borderRadius: 8, padding: "4px 2px" }} />
+            <button onClick={() => setQty((q) => round(q + 0.25, 2))} className="tap" style={{ width: 26, height: 26, borderRadius: 999, border: "1px solid var(--line)" }}>+</button>
+            <span className="text-[11px]" style={{ color: "var(--ink-faint)" }}>× {picked.servingLabel}</span>
           </div>
-          <div className="font-mono text-[13px] mb-4">{round(picked.cal * qty)} cal · {round(picked.p * qty)}g P · {round(picked.c * qty)}g C · {round(picked.f * qty)}g F</div>
-          <div className="flex gap-2">
+          <Field label="Exact serving eaten (optional)">
+            <input value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} className="input" placeholder={`e.g. "1½ cups" or "a small handful"`} />
+          </Field>
+          <div className="mt-3 mb-1">
+            <NutritionFactsPanel n={{
+              cal: picked.cal * qty, p: picked.p * qty, c: picked.c * qty, f: picked.f * qty, fiber: (picked.fiber || 0) * qty,
+              satFat: (picked.satFat || 0) * qty, transFat: (picked.transFat || 0) * qty, cholesterol: (picked.cholesterol || 0) * qty,
+              sodium: (picked.sodium || 0) * qty, sugar: (picked.sugar || 0) * qty,
+            }} title={`FOR ${qty} SERVING${qty === 1 ? "" : "S"}`} />
+          </div>
+          <div className="flex gap-2 mt-3">
             <button onClick={() => setPicked(null)} className="tap btn-ghost" style={{ flex: 1, padding: "11px 0" }}>Back</button>
             <button onClick={submitFood} className="tap btn-primary" style={{ flex: 1, padding: "11px 0" }}>Log It</button>
           </div>
@@ -2004,6 +2081,23 @@ function LogFoodModal({ meals, foods, foodsById, onClose, onLog, targetDate }) {
             <Field label="Carbs"><input type="number" value={quick.c} onChange={(e) => setQuick((s) => ({ ...s, c: e.target.value }))} className="input" /></Field>
             <Field label="Fat"><input type="number" value={quick.f} onChange={(e) => setQuick((s) => ({ ...s, f: e.target.value }))} className="input" /></Field>
           </div>
+          <button onClick={() => setQuickAdvanced(!quickAdvanced)} className="tap text-[12.5px] font-semibold inline-flex items-center gap-1 self-start" style={{ color: "var(--blue)" }}>
+            {quickAdvanced ? "Hide" : "Add"} Deeper Nutrition Facts <ChevronRight size={12} style={{ transform: quickAdvanced ? "rotate(90deg)" : "none" }} />
+          </button>
+          {quickAdvanced && (
+            <div className="p-3 rounded-2xl" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+              <Field label="Dietary Fiber g"><input type="number" value={quick.fiber} onChange={(e) => setQuick((s) => ({ ...s, fiber: e.target.value }))} className="input" /></Field>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <Field label="Saturated Fat g"><input type="number" value={quick.satFat} onChange={(e) => setQuick((s) => ({ ...s, satFat: e.target.value }))} className="input" /></Field>
+                <Field label="Trans Fat g"><input type="number" value={quick.transFat} onChange={(e) => setQuick((s) => ({ ...s, transFat: e.target.value }))} className="input" /></Field>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <Field label="Cholesterol mg"><input type="number" value={quick.cholesterol} onChange={(e) => setQuick((s) => ({ ...s, cholesterol: e.target.value }))} className="input" /></Field>
+                <Field label="Sodium mg"><input type="number" value={quick.sodium} onChange={(e) => setQuick((s) => ({ ...s, sodium: e.target.value }))} className="input" /></Field>
+              </div>
+              <div className="mt-2"><Field label="Sugars g"><input type="number" value={quick.sugar} onChange={(e) => setQuick((s) => ({ ...s, sugar: e.target.value }))} className="input" /></Field></div>
+            </div>
+          )}
           <button onClick={submitQuick} className="tap btn-primary w-full" style={{ padding: "12px 0" }}>Log It</button>
         </div>
       )}
@@ -2121,7 +2215,8 @@ function CreateRecipeModal({ foods, onClose, onSave }) {
 }
 
 function AddFoodModal({ onClose, onSave }) {
-  const [f, setF] = useState({ name:"", brand:"", category:"Protein", servingLabel:"", cal:"", p:"", c:"", fat:"", fiber:"", gf:false, ai:false, price:"", store:"", location:"pantry", qty:0, pkgServings:1 });
+  const [f, setF] = useState({ name:"", brand:"", category:"Protein", servingLabel:"", cal:"", p:"", c:"", fat:"", fiber:"", satFat:"", transFat:"", cholesterol:"", sodium:"", sugar:"", gf:false, ai:false, price:"", store:"", location:"pantry", qty:0, pkgServings:1 });
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
   const canSave = f.name.trim() && f.servingLabel.trim() && f.cal !== "";
   return (
@@ -2151,6 +2246,25 @@ function AddFoodModal({ onClose, onSave }) {
           <Field label="Fat g"><input type="number" value={f.fat} onChange={(e) => set("fat", e.target.value)} className="input" /></Field>
         </div>
         <Field label="Fiber g"><input type="number" value={f.fiber} onChange={(e) => set("fiber", e.target.value)} className="input" /></Field>
+
+        <button onClick={() => setShowAdvanced(!showAdvanced)} className="tap text-[12.5px] font-semibold inline-flex items-center gap-1 self-start" style={{ color: "var(--blue)" }}>
+          {showAdvanced ? "Hide" : "Add"} Deeper Nutrition Facts <ChevronRight size={12} style={{ transform: showAdvanced ? "rotate(90deg)" : "none" }} />
+        </button>
+        {showAdvanced && (
+          <div className="p-3 rounded-2xl" style={{ background: "var(--paper)", border: "1px solid var(--line-soft)" }}>
+            <div className="text-[11px] mb-2.5" style={{ color: "var(--ink-faint)" }}>All optional — leave blank for anything you don't have on hand from the label.</div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <Field label="Saturated Fat g"><input type="number" value={f.satFat} onChange={(e) => set("satFat", e.target.value)} className="input" /></Field>
+              <Field label="Trans Fat g"><input type="number" value={f.transFat} onChange={(e) => set("transFat", e.target.value)} className="input" /></Field>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <Field label="Cholesterol mg"><input type="number" value={f.cholesterol} onChange={(e) => set("cholesterol", e.target.value)} className="input" /></Field>
+              <Field label="Sodium mg"><input type="number" value={f.sodium} onChange={(e) => set("sodium", e.target.value)} className="input" /></Field>
+            </div>
+            <Field label="Sugars g"><input type="number" value={f.sugar} onChange={(e) => set("sugar", e.target.value)} className="input" /></Field>
+          </div>
+        )}
+
         <div className="flex gap-4">
           <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={f.gf} onChange={(e) => set("gf", e.target.checked)} /> Gluten-free</label>
           <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={f.ai} onChange={(e) => set("ai", e.target.checked)} /> Anti-inflammatory</label>
@@ -4292,7 +4406,9 @@ export default function TropheApp() {
   const _raw_addFood = (draft) => setFoods((s) => [...s, {
     id: uid("food"), name: draft.name, brand: draft.brand, category: draft.category, servingLabel: draft.servingLabel,
     cal: Number(draft.cal) || 0, p: Number(draft.p) || 0, c: Number(draft.c) || 0, f: Number(draft.fat) || 0,
-    fiber: Number(draft.fiber) || 0, gf: draft.gf, ai: draft.ai, price: Number(draft.price) || 0, store: draft.store || "—",
+    fiber: Number(draft.fiber) || 0, satFat: Number(draft.satFat) || 0, transFat: Number(draft.transFat) || 0,
+    cholesterol: Number(draft.cholesterol) || 0, sodium: Number(draft.sodium) || 0, sugar: Number(draft.sugar) || 0,
+    gf: draft.gf, ai: draft.ai, price: Number(draft.price) || 0, store: draft.store || "—",
     prices: [{ store: draft.store || "—", price: Number(draft.price) || 0 }], preferredStore: draft.store || "—",
     location: draft.location, qty: Number(draft.qty) || 0, pkgServings: Number(draft.qty) || 1,
   }]);
